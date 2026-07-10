@@ -1,10 +1,13 @@
 package com.ecommerce.product.service.impl;
 
+import com.ecommerce.common.BusinessException;
+import com.ecommerce.common.PageResponse;
 import com.ecommerce.product.entity.Product;
 import com.ecommerce.product.entity.Review;
 import com.ecommerce.product.repository.ProductRepository;
 import com.ecommerce.product.repository.ReviewRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
@@ -21,10 +24,24 @@ public class ProductServiceImpl implements CommandLineRunner {
     @Autowired
     private ReviewRepository reviewRepository;
 
-    // 获取单条商品详情
+    @Value("${app.product.default-size:10}")
+    private int defaultPageSize;
+
+    // 获取商品列表（分页）
+    public PageResponse<Product> getAllProducts(int page, int size) {
+        if (size <= 0) size = defaultPageSize;
+        List<Product> all = productRepository.findAll();
+        int total = all.size();
+        int from = page * size;
+        int to = Math.min(from + size, total);
+        List<Product> content = (from < total) ? all.subList(from, to) : List.of();
+        return new PageResponse<>(content, page, size, total);
+    }
+
+    // 获取单件商品详情
     public Product getProduct(Integer id) {
         return productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new BusinessException(404, "商品不存在"));
     }
 
     // 发表评价

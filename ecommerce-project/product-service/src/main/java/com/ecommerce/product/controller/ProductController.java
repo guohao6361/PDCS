@@ -1,5 +1,7 @@
 package com.ecommerce.product.controller;
 
+import com.ecommerce.common.ApiResponse;
+import com.ecommerce.common.PageResponse;
 import com.ecommerce.product.entity.Product;
 import com.ecommerce.product.entity.Review;
 import com.ecommerce.product.service.impl.ProductServiceImpl;
@@ -8,28 +10,39 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
-@CrossOrigin
 @RestController
 public class ProductController {
 
     @Autowired
     private ProductServiceImpl productService;
 
-    // 1. 获取商品详情 [1.1.2]
+    // 商品列表（分页）
+    @GetMapping("/products")
+    public ResponseEntity<ApiResponse<PageResponse<Product>>> getProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        PageResponse<Product> result = productService.getAllProducts(page, size);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    // 商品详情
     @GetMapping("/products/{id}")
-    public ResponseEntity<Product> getProduct(@PathVariable Integer id) {
-        return ResponseEntity.ok(productService.getProduct(id));
+    public ResponseEntity<ApiResponse<Product>> getProduct(@PathVariable Integer id) {
+        Product product = productService.getProduct(id);
+        return ResponseEntity.ok(ApiResponse.success(product));
     }
 
-    // 2. 发表评价 [1.1.2]
+    // 发表评价
     @PostMapping("/reviews")
-    public ResponseEntity<Review> addReview(@RequestBody Review review) {
-        return ResponseEntity.ok(productService.addReview(review));
+    public ResponseEntity<ApiResponse<Review>> addReview(@RequestBody Review review) {
+        Review saved = productService.addReview(review);
+        return ResponseEntity.ok(ApiResponse.success(saved));
     }
 
-    // 3. 获取某商品下的所有评价
+    // 获取某商品下的所有评价
     @GetMapping("/reviews/{productId}")
-    public ResponseEntity<List<Review>> getReviews(@PathVariable Integer productId) {
-        return ResponseEntity.ok(productService.getReviews(productId));
+    public ResponseEntity<ApiResponse<List<Review>>> getReviews(@PathVariable Integer productId) {
+        List<Review> reviews = productService.getReviews(productId);
+        return ResponseEntity.ok(ApiResponse.success(reviews));
     }
 }

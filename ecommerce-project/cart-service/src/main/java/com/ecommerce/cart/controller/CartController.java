@@ -1,12 +1,13 @@
 package com.ecommerce.cart.controller;
 
 import com.ecommerce.cart.dto.CartItemRequest;
+import com.ecommerce.cart.dto.CartResponse;
 import com.ecommerce.cart.service.CartService;
+import com.ecommerce.common.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.Map;
 
-@CrossOrigin
 @RestController
 @RequestMapping("/cart")
 public class CartController {
@@ -15,23 +16,27 @@ public class CartController {
     private CartService cartService;
 
     @PostMapping("/add")
-    public String add(@RequestBody CartItemRequest request) {
-        cartService.addToCart(
-            request.getUserId(),
-            request.getProductId(),
-            request.getQuantity()
-        );
-        return "Added to cart";
+    public ResponseEntity<ApiResponse<Void>> add(@RequestBody CartItemRequest request) {
+        cartService.addToCart(request.getUserId(), request.getProductId(), request.getQuantity());
+        return ResponseEntity.ok(ApiResponse.success("添加成功"));
     }
 
     @GetMapping("/{userId}")
-    public Map<Object, Object> get(@PathVariable Long userId) {
-        return cartService.getCart(userId);
+    public ResponseEntity<ApiResponse<CartResponse>> get(@PathVariable Long userId) {
+        CartResponse cart = cartService.getCart(userId);
+        return ResponseEntity.ok(ApiResponse.success(cart));
     }
 
     @DeleteMapping("/{userId}/{productId}")
-    public String delete(@PathVariable Long userId, @PathVariable Long productId) {
+    public ResponseEntity<ApiResponse<Void>> delete(
+            @PathVariable Long userId, @PathVariable Long productId) {
         cartService.removeFromCart(userId, productId);
-        return "Deleted";
+        return ResponseEntity.ok(ApiResponse.success("移除成功"));
+    }
+
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<ApiResponse<Void>> clear(@PathVariable Long userId) {
+        cartService.clearCart(userId);
+        return ResponseEntity.ok(ApiResponse.success("清空成功"));
     }
 }

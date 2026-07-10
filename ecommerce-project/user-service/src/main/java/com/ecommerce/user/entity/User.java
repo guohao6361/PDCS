@@ -1,6 +1,7 @@
 package com.ecommerce.user.entity;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.math.BigDecimal;
 
 @Entity
@@ -14,6 +15,7 @@ public class User {
     @Column(unique = true, nullable = false, length = 50)
     private String username;
 
+    @JsonIgnore
     @Column(nullable = false, length = 100)
     private String password;
 

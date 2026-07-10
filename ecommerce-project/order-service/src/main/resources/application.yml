@@ -1,0 +1,19 @@
+server:
+  port: ${SERVER_PORT:8084}
+
+spring:
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/ecommerce}
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:rootpassword}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: ${JPA_SHOW_SQL:true}
+
+app:
+  service:
+    cart-url: ${CART_SERVICE_URL:http://localhost:8083}
+    product-url: ${PRODUCT_SERVICE_URL:http://localhost:8082}
+  jwt:
+    secret: ${JWT_SECRET:myDefaultJwtSecretKeyForDevelopmentOnly123456}
