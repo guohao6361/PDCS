@@ -1,0 +1,58 @@
+# ==========================================
+# 1. PVC：为 MongoDB 声明 1Gi 的持久化数据空间
+# ==========================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# ==========================================
+# 2. Deployment：部署 MongoDB 6.0 容器
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          # 使用高速国内镜像代理源，防止拉取超时
+          image: mongo:6.0
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: mongo-persistent-storage
+              mountPath: /data/db  # 挂载 MongoDB 的默认数据目录
+      volumes:
+        - name: mongo-persistent-storage
+          persistentVolumeClaim:
+            claimName: mongodb-pvc
+---
+# ==========================================
+# 3. Service：将 27017 端口暴露给集群内部
+# ==========================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-service
+spec:
+  selector:
+    app: mongodb
+  ports:
+    - port: 27017
+      targetPort: 27017

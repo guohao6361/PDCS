@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product-service
+  template:
+    metadata:
+      labels:
+        app: product-service
+    spec:
+      containers:
+        - name: product-service
+          image: product-service:v0
+          ports:
+            - containerPort: 8082
+          env:
+            - name: MONGO_URI
+              value: "mongodb://mongodb-service:27017/ecommerce" # 👈 直接连接我们刚刚建好的有状态的 mongodb-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+spec:
+  selector:
+    app: product-service
+  ports:
+    - port: 80
+      targetPort: 8082

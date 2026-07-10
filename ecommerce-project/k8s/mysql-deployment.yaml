@@ -1,0 +1,63 @@
+# ==========================================
+# 1. PVC：为 MySQL 声明 1Gi 的持久化物理硬盘空间
+# ==========================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# ==========================================
+# 2. Deployment：部署 MySQL 8.0 容器
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          # 使用我们在本地验证过、速度极快的国内镜像源拉取官方镜像
+          image: mysql:8.0
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: "rootpassword"   # 数据库 root 用户密码
+            - name: MYSQL_DATABASE
+              value: "ecommerce"      # 默认创建的初始数据库名
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: mysql-persistent-storage
+              mountPath: /var/lib/mysql  # 挂载数据目录，确保容器重启数据不丢失
+      volumes:
+        - name: mysql-persistent-storage
+          persistentVolumeClaim:
+            claimName: mysql-pvc
+---
+# ==========================================
+# 3. Service：将 MySQL 的 3306 端口暴露给集群内部
+# ==========================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+      targetPort: 3306

@@ -1,0 +1,385 @@
+# ==========================================================
+# 1. ConfigMap：存放 Nginx 配置（default.conf）和静态网页（index.html）
+# ==========================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-html
+data:
+  # Nginx 反向代理配置文件 (实现网关功能)
+  default.conf: |
+    server {
+        listen 80;
+        server_name localhost;
+
+        # 1. 静态网页请求：直接指向本地 HTML 目录
+        location / {
+            root /usr/share/nginx/html;
+            index index.html index.htm;
+        }
+
+        # 2. 购物车接口代理
+        location /cart {
+            proxy_pass http://cart-service;  
+        }
+
+        # 3. 用户接口代理    
+        location /users {
+            proxy_pass http://user-service; 
+        }
+        # 4. 商品接口代理  
+        location /products {
+            proxy_pass http://product-service;
+        }
+
+        # 5. 评价接口代理  
+        location /reviews {
+            proxy_pass http://product-service;
+        }
+    }
+  # 静态网页文件
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>我的极简微服务商城</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-100 min-h-screen p-8 font-sans">
+        <div class="max-w-6xl mx-auto">
+            
+            <!-- 头部：注册/登录控制面板 -->
+            <header class="mb-8 border-b pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">🛍️ 极简电商微服务平台</h1>
+                    <p class="text-gray-500 mt-2">
+                        当前用户 ID: <span id="current-user-id" class="font-bold text-blue-600">1001</span> 
+                        (用户名: <span id="current-username" class="font-bold text-blue-600">游客</span>)
+                    </p>
+                </div>
+                
+                <!-- 注册与登录面板 -->
+                <div class="bg-white p-4 rounded-lg shadow-sm border flex flex-wrap items-center gap-2">
+                    <input id="reg-username" type="text" placeholder="用户名" class="border px-2 py-1 rounded text-sm w-28 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <input id="reg-password" type="password" placeholder="密码" class="border px-2 py-1 rounded text-sm w-28 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <button onclick="webRegister()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-sm font-bold transition">注册</button>
+                    <button onclick="webLogin()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-sm font-bold transition">登录</button>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- 左侧：商品列表 -->
+                <div class="md:col-span-2">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-700">商品橱窗</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        
+                        <!-- 商品 1 卡片 -->
+                        <div class="bg-white p-6 rounded-lg shadow-sm border flex flex-col justify-between">
+                            <div>
+                                <div id="prod-name-1" class="text-lg font-bold">📱 加载中...</div>
+                                <div id="prod-price-1" class="text-blue-600 font-bold mt-2">¥ 0.00</div>
+                                <!-- 动态属性容器 -->
+                                <div id="prod-attrs-1" class="mt-3 flex flex-wrap gap-2"></div>
+                            </div>
+                            <button onclick="addToCart(1, '华为 Mate 60')" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition">
+                                加入购物车
+                            </button>
+                        </div>
+
+                        <!-- 商品 2 -->
+                        <div class="bg-white p-6 rounded-lg shadow-sm border">
+                            <div class="text-lg font-bold">💻 机械键盘</div>
+                            <div class="text-blue-600 font-bold mt-2">¥ 499.00</div>
+                            <button onclick="addToCart(2, '机械键盘')" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition">
+                                加入购物车
+                            </button>
+                        </div>
+
+                        <!-- 商品 3 -->
+                        <div class="bg-white p-6 rounded-lg shadow-sm border">
+                            <div class="text-lg font-bold">🎧 降噪耳机</div>
+                            <div class="text-blue-600 font-bold mt-2">¥ 1299.00</div>
+                            <button onclick="addToCart(3, '降噪耳机')" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition">
+                                加入购物车
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 右侧：购物车实时展示 -->
+                <div class="bg-white p-6 rounded-lg shadow-md border h-fit">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-gray-700">🛒 我的购物车</h2>
+                    </div>
+                    <div id="cart-items" class="space-y-3 min-h-[100px] flex flex-col justify-center">
+                        <p class="text-gray-400 text-center">购物车是空的</p>
+                    </div>
+                    <button onclick="loadCart()" class="mt-6 w-full bg-gray-800 hover:bg-gray-900 text-white py-2 rounded transition">
+                        手动刷新数据
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 升级：底部增加商品评价面板 -->
+            <div class="bg-white p-6 rounded-lg shadow-sm border mt-8">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">✍️ 发表商品评价 (存入 MongoDB)</h2>
+                <div class="flex flex-wrap items-center gap-4">
+                    <select id="rev-product-id" class="border px-3 py-2 rounded text-sm focus:outline-none">
+                        <option value="1">📱 华为 Mate 60</option>
+                        <option value="2">💻 机械键盘</option>
+                        <option onclick="alert('TODO')" value="3">🎧 降噪耳机</option>
+                    </select>
+                    <input id="rev-content" type="text" placeholder="写下你的商品使用感受..." class="border px-3 py-2 rounded text-sm flex-1 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <button onclick="postReview()" class="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded text-sm font-bold transition">
+                        发表评价
+                    </button>
+                </div>
+                <div id="latest-review-box" class="mt-4 p-3 bg-gray-50 rounded border hidden text-xs text-gray-600">
+                    最新一条评价：<span id="latest-review-content" class="font-bold text-gray-800"></span>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            const API_CART = '/cart'; 
+            const API_USER = '/users'; 
+            const API_PRODUCT = '/products'; 
+            const API_REVIEW = '/reviews'; 
+            let USER_ID = 1001;
+
+            window.onload = function() { 
+                loadCart(); 
+                loadProductDetailsFromMongo(1); // 👈 启动时自动从 MongoDB 获取 1 号商品详情 [1.1.2]
+            };
+
+            // ==========================================================
+            // 新增：从 MongoDB 获取并渲染商品详情与动态属性（attributes）[1.1.2]
+            // ==========================================================
+            async function loadProductDetailsFromMongo(productId) {
+                try {
+                    const response = await fetch(`${API_PRODUCT}/${productId}`);
+                    if (!response.ok) return;
+                    const prod = await response.json();
+                    
+                    // 渲染名称和价格
+                    document.getElementById(`prod-name-${productId}`).innerText = `📱 ${prod.name}`;
+                    document.getElementById(`prod-price-${productId}`).innerText = `¥ ${prod.price.toFixed(2)}`;
+                    
+                    // 动态渲染不同商品的个性化属性（Attributes）
+                    const attrContainer = document.getElementById(`prod-attrs-${productId}`);
+                    attrContainer.innerHTML = '';
+                    if (prod.attributes) {
+                        for (const [key, value] of Object.entries(prod.attributes)) {
+                            let friendlyKey = key;
+                            if (key === 'color') friendlyKey = '颜色';
+                            if (key === 'storage') friendlyKey = '存储';
+                            if (key === 'network') friendlyKey = '网络';
+                            
+                            attrContainer.innerHTML += `
+                                <span class="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full border border-gray-200">
+                                    ${friendlyKey}: ${value}
+                                </span>
+                            `;
+                        }
+                    }
+                } catch (error) {
+                    console.error('获取商品详情失败', error);
+                }
+            }
+
+            // ==========================================================
+            // 新增：发表商品评价 (写入 MongoDB) [1.1.2]
+            // ==========================================================
+            async function postReview() {
+                const prodId = parseInt(document.getElementById('rev-product-id').value);
+                const content = document.getElementById('rev-content').value.trim();
+                const username = document.getElementById('current-username').innerText;
+
+                if (username === '游客') { alert('请先在右上角注册或登录用户！'); return; }
+                if (!content) { alert('请输入评价内容！'); return; }
+
+                try {
+                    const response = await fetch(`${API_REVIEW}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            productId: prodId,
+                            username: username,
+                            content: content,
+                            rating: 5
+                        })
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        alert('🎉 评价成功！数据已成功写入 MongoDB。');
+                        document.getElementById('rev-content').value = '';
+                        
+                        // 局部刷新显示最新评价
+                        document.getElementById('latest-review-box').classList.remove('hidden');
+                        document.getElementById('latest-review-content').innerText = `[${data.username}] 说: "${data.content}"`;
+                    } else {
+                        alert('发表评价失败');
+                    }
+                } catch (error) {
+                    alert('无法连接到评价服务！请确认 product-service 已启动。');
+                    console.error(error);
+                }
+            }
+
+            // 注册用户
+            async function webRegister() {
+                const u = document.getElementById('reg-username').value.trim();
+                const p = document.getElementById('reg-password').value.trim();
+                if(!u || !p) { alert('请输入用户名和密码！'); return; }
+                try {
+                    const response = await fetch(`${API_USER}/register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: u, password: p })
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        alert(`🎉 注册成功！你是本站第 ${data.id} 位会员，系统已为您自动登录。`);
+                        switchUser(data.id, data.username);
+                    } else {
+                        alert('注册失败：' + (typeof data === 'string' ? data : '用户名可能已存在'));
+                    }
+                } catch (error) {
+                    alert('无法连接到用户微服务！');
+                    console.error(error);
+                }
+            }
+
+            // 用户登录
+            async function webLogin() {
+                const u = document.getElementById('reg-username').value.trim();
+                const p = document.getElementById('reg-password').value.trim();
+                if(!u || !p) { alert('请输入用户名和密码！'); return; }
+                try {
+                    const response = await fetch(`${API_USER}/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: u, password: p })
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        alert(`👋 欢迎回来，${data.username}！登录成功。`);
+                        switchUser(data.id, data.username);
+                    } else {
+                        alert('登录失败：密码错误或用户不存在');
+                    }
+                } catch (error) {
+                    alert('无法连接到用户微服务！');
+                    console.error(error);
+                }
+            }
+
+            // 切换用户
+            function switchUser(id, name) {
+                USER_ID = id;
+                document.getElementById('current-user-id').innerText = id;
+                document.getElementById('current-username').innerText = name;
+                loadCart(); 
+            }
+
+            // 购物车接口
+            async function addToCart(productId, productName) {
+                try {
+                    const response = await fetch(`${API_CART}/add`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: USER_ID, productId: productId, quantity: 1 })
+                    });
+                    if (response.ok) { loadCart(); } else { alert('添加失败'); }
+                } catch (error) {
+                    alert('无法连接到后端服务，请确认端口转发是否开启！');
+                    console.error(error);
+                }
+            }
+
+            async function loadCart() {
+                const container = document.getElementById('cart-items');
+                try {
+                    const response = await fetch(`${API_CART}/${USER_ID}`);
+                    if (!response.ok) throw new Error('查询失败');
+                    const data = await response.json();
+                    container.innerHTML = '';
+                    if (Object.keys(data).length === 0) {
+                        container.innerHTML = '<p class="text-gray-400 text-center">购物车是空的</p>';
+                        return;
+                    }
+                    for (const [prodId, qty] of Object.entries(data)) {
+                        let prodName = '未知商品';
+                        if (prodId === '1') prodName = '📱 华为 Mate 60';
+                        if (prodId === '2') prodName = '💻 机械键盘';
+                        if (prodId === '3') prodName = '🎧 降噪耳机';
+                        container.innerHTML += `
+                            <div class="flex justify-between items-center bg-gray-50 p-3 rounded border">
+                                <div>
+                                    <span class="font-semibold">${prodName}</span>
+                                    <span class="text-xs text-gray-400 block">ID: ${prodId}</span>
+                                </div>
+                                <span class="bg-blue-100 text-blue-800 text-sm font-bold px-3 py-1 rounded-full">数量: ${qty}</span>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    container.innerHTML = '<p class="text-red-500 text-center">数据加载失败</p>';
+                    console.error(error);
+                }
+            }
+        </script>
+    </body>
+    </html>
+---
+# ==========================================================
+# 2. Deployment：部署 Nginx，挂载网页文件及代理配置文件
+# ==========================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-server
+  template:
+    metadata:
+      labels:
+        app: web-server
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            # 挂载网页
+            - name: config-volume
+              mountPath: /usr/share/nginx/html/index.html
+              subPath: index.html
+            # 挂载 Nginx 反向代理配置 (default.conf)
+            - name: config-volume
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: frontend-html
+---
+# ==========================================================
+# 3. Service：将 Web 服务暴露给 K8s 内部
+# ==========================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+spec:
+  selector:
+    app: web-server
+  ports:
+    - port: 80
+      targetPort: 80

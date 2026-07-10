@@ -1,0 +1,13 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    # 优先读取 K8s 注入的 MYSQL_URL，若无则默认连接本地 localhost 端口
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/ecommerce}
+    username: root
+    password: rootpassword
+  jpa:
+    hibernate:
+      ddl-auto: update # 自动根据 Entity 更新表结构
+    show-sql: true     # 在控制台打印 SQL 语句，方便调试

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+        - name: user-service
+          image: user-service:v0
+          ports:
+            - containerPort: 8081
+          env:
+            - name: MYSQL_URL
+              value: "jdbc:mysql://mysql-service:3306/ecommerce" # 👈 直接连接我们上一轮建好的 mysql-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+spec:
+  selector:
+    app: user-service
+  ports:
+    - port: 80
+      targetPort: 8081
