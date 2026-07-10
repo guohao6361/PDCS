@@ -15,5 +15,7 @@ app:
   service:
     cart-url: ${CART_SERVICE_URL:http://localhost:8083}
     product-url: ${PRODUCT_SERVICE_URL:http://localhost:8082}
+    connect-timeout: ${SERVICE_CONNECT_TIMEOUT:5000}
+    read-timeout: ${SERVICE_READ_TIMEOUT:10000}
   jwt:
     secret: ${JWT_SECRET:myDefaultJwtSecretKeyForDevelopmentOnly123456}

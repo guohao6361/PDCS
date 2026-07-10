@@ -4,6 +4,7 @@ import com.ecommerce.cart.dto.CartItemRequest;
 import com.ecommerce.cart.dto.CartResponse;
 import com.ecommerce.cart.service.CartService;
 import com.ecommerce.common.ApiResponse;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +17,7 @@ public class CartController {
     private CartService cartService;
 
     @PostMapping("/add")
-    public ResponseEntity<ApiResponse<Void>> add(@RequestBody CartItemRequest request) {
+    public ResponseEntity<ApiResponse<Void>> add(@Valid @RequestBody CartItemRequest request) {
         cartService.addToCart(request.getUserId(), request.getProductId(), request.getQuantity());
         return ResponseEntity.ok(ApiResponse.success("添加成功"));
     }

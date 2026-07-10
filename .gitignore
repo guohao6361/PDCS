@@ -26,5 +26,8 @@ replay_pid*
 # qoder开发的文件
 .qoder/
 
+# Maven build target
+target/
+
 # 环境变量
 .env

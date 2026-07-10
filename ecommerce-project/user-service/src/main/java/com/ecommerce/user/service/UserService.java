@@ -1,9 +1,9 @@
 package com.ecommerce.user.service;
 
 import com.ecommerce.user.dto.LoginResponse;
-import com.ecommerce.user.entity.User;
+import com.ecommerce.user.dto.RegisterResponse;
 
 public interface UserService {
-    User register(String username, String password);
+    RegisterResponse register(String username, String password);
     LoginResponse login(String username, String password);
 }

@@ -1,5 +1,6 @@
 package com.ecommerce.product.entity;
 
+import jakarta.validation.constraints.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -7,10 +8,20 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Review {
 
     @Id
-    private String id; // MongoDB 自动生成的 ObjectId
+    private String id;
+
+    @NotNull(message = "商品ID不能为空")
     private Integer productId;
+
+    @NotBlank(message = "用户名不能为空")
     private String username;
+
+    @NotBlank(message = "评价内容不能为空")
     private String content;
+
+    @NotNull(message = "评分不能为空")
+    @Min(value = 1, message = "评分最低为1")
+    @Max(value = 5, message = "评分最高为5")
     private Integer rating;
 
     // 手动 Getter & Setter

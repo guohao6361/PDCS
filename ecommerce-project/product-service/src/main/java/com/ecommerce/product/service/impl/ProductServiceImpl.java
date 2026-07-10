@@ -6,9 +6,18 @@ import com.ecommerce.product.entity.Product;
 import com.ecommerce.product.entity.Review;
 import com.ecommerce.product.repository.ProductRepository;
 import com.ecommerce.product.repository.ReviewRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -18,11 +27,16 @@ import java.util.Map;
 @Service
 public class ProductServiceImpl implements CommandLineRunner {
 
+    private static final Logger log = LoggerFactory.getLogger(ProductServiceImpl.class);
+
     @Autowired
     private ProductRepository productRepository;
 
     @Autowired
     private ReviewRepository reviewRepository;
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     @Value("${app.product.default-size:10}")
     private int defaultPageSize;
@@ -30,12 +44,9 @@ public class ProductServiceImpl implements CommandLineRunner {
     // 获取商品列表（分页）
     public PageResponse<Product> getAllProducts(int page, int size) {
         if (size <= 0) size = defaultPageSize;
-        List<Product> all = productRepository.findAll();
-        int total = all.size();
-        int from = page * size;
-        int to = Math.min(from + size, total);
-        List<Product> content = (from < total) ? all.subList(from, to) : List.of();
-        return new PageResponse<>(content, page, size, total);
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by("id").ascending());
+        Page<Product> pageResult = productRepository.findAll(pageRequest);
+        return new PageResponse<>(pageResult.getContent(), page, size, (int) pageResult.getTotalElements());
     }
 
     // 获取单件商品详情
@@ -52,6 +63,18 @@ public class ProductServiceImpl implements CommandLineRunner {
     // 查询某商品的所有评价
     public List<Review> getReviews(Integer productId) {
         return reviewRepository.findByProductId(productId);
+    }
+
+    // 原子扣减库存（防止超卖）
+    public void deductStock(Integer productId, Integer quantity) {
+        Query query = new Query(Criteria.where("_id").is(productId)
+                .and("stock").gte(quantity));
+        Update update = new Update().inc("stock", -quantity);
+        var result = mongoTemplate.updateFirst(query, update, Product.class);
+        if (result.getModifiedCount() == 0) {
+            throw new BusinessException(400, "商品库存不足或商品不存在: " + productId);
+        }
+        log.info("库存扣减成功: productId={}, quantity={}", productId, quantity);
     }
 
     // ==========================================================
@@ -100,7 +123,7 @@ public class ProductServiceImpl implements CommandLineRunner {
             p3.setAttributes(attr3);
             productRepository.save(p3);
 
-            System.out.println("🎉 MongoDB 商品实验数据初始化成功！");
+            log.info("MongoDB 商品实验数据初始化成功");
         }
     }
 }

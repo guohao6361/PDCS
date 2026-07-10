@@ -7,6 +7,8 @@ import com.ecommerce.order.entity.Order;
 import com.ecommerce.order.entity.OrderItem;
 import com.ecommerce.order.repository.OrderRepository;
 import com.ecommerce.order.service.OrderService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,8 @@ import java.util.Map;
 
 @Service
 public class OrderServiceImpl implements OrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
 
     @Value("${app.service.cart-url}")
     private String cartServiceUrl;
@@ -52,7 +56,7 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(400, "购物车为空");
         }
 
-        // 2. 查询商品价格并校验库存，计算总价
+        // 2. 查询商品信息、计算总价
         BigDecimal totalPrice = BigDecimal.ZERO;
         List<OrderItem> orderItems = new ArrayList<>();
 
@@ -71,12 +75,6 @@ public class OrderServiceImpl implements OrderService {
             Map<String, Object> product = (Map<String, Object>) productResp.getData();
             String productName = (String) product.get("name");
             BigDecimal price = new BigDecimal(product.get("price").toString());
-            Integer stock = Integer.parseInt(product.get("stock").toString());
-
-            // 校验库存
-            if (stock < quantity) {
-                throw new BusinessException(400, "商品[" + productName + "]库存不足");
-            }
 
             // 计算总价
             totalPrice = totalPrice.add(price.multiply(BigDecimal.valueOf(quantity)));
@@ -90,7 +88,14 @@ public class OrderServiceImpl implements OrderService {
             orderItems.add(item);
         }
 
-        // 3. 创建订单
+        // 3. 原子扣减库存（防止超卖）
+        for (OrderItem item : orderItems) {
+            String deductUrl = productServiceUrl + "/products/" + item.getProductId()
+                    + "/deduct-stock?quantity=" + item.getQuantity();
+            restTemplate.put(deductUrl, null);
+        }
+
+        // 4. 创建订单
         Order order = new Order();
         order.setUserId(userId);
         order.setTotalPrice(totalPrice);
@@ -102,10 +107,17 @@ public class OrderServiceImpl implements OrderService {
         order.setItems(orderItems);
 
         Order savedOrder = orderRepository.save(order);
+        log.info("订单创建成功: orderId={}, userId={}, totalPrice={}", savedOrder.getId(), userId, totalPrice);
 
-        // 4. 清空购物车
-        String clearCartUrl = cartServiceUrl + "/cart/" + userId;
-        restTemplate.delete(clearCartUrl);
+        // 5. 清空购物车（失败时补偿回滚订单）
+        try {
+            String clearCartUrl = cartServiceUrl + "/cart/" + userId;
+            restTemplate.delete(clearCartUrl);
+        } catch (Exception e) {
+            log.error("清空购物车失败，回滚订单: orderId={}, error={}", savedOrder.getId(), e.getMessage());
+            orderRepository.deleteById(savedOrder.getId());
+            throw new BusinessException(500, "清空购物车失败，订单已回滚，请稍后重试");
+        }
 
         return toResponse(savedOrder);
     }
