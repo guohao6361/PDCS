@@ -65,6 +65,8 @@ Token 通过 `/users/login` 接口获取。
 | DELETE | /cart/{userId}/{productId} | cart-service(8083) | 是 | 移除购物车中某商品 |
 | DELETE | /cart/{userId} | cart-service(8083) | 是 | 清空购物车 |
 | POST | /orders | order-service(8084) | 是 | 从购物车创建订单 |
+| POST | /orders/{id}/pay | order-service(8084) | 是 | 支付订单（余额扣款） |
+| POST | /orders/{id}/cancel | order-service(8084) | 是 | 取消订单（恢复库存） |
 | GET | /orders/user/{userId} | order-service(8084) | 是 | 用户订单列表 |
 | GET | /orders/{id} | order-service(8084) | 是 | 订单详情 |
 
@@ -90,8 +92,8 @@ Token 通过 `/users/login` 接口获取。
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| username | string | 是 | 用户名，唯一，最长50字符 |
-| password | string | 是 | 密码，最长100字符 |
+| username | string | 是 | 用户名，唯一，长度2-20字符 |
+| password | string | 是 | 密码，长度6-50字符 |
 
 **响应示例:**
 
@@ -100,7 +102,7 @@ Token 通过 `/users/login` 接口获取。
   "code": 200,
   "message": "success",
   "data": {
-    "id": 1,
+    "userId": 1,
     "username": "testuser",
     "balance": 1000.00
   },
@@ -110,7 +112,7 @@ Token 通过 `/users/login` 接口获取。
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | int | 用户ID |
+| userId | int | 用户ID |
 | username | string | 用户名 |
 | balance | decimal | 账户余额（注册赠送） |
 
@@ -286,7 +288,7 @@ Token 通过 `/users/login` 接口获取。
 | productId | int | 是 | 商品ID |
 | username | string | 是 | 评价用户名 |
 | content | string | 是 | 评价内容 |
-| rating | int | 是 | 评分（建议1-5） |
+| rating | int | 是 | 评分（1-5） |
 
 **响应示例:**
 
@@ -545,7 +547,94 @@ Token 通过 `/users/login` 接口获取。
 
 ---
 
-#### 3.4.2 用户订单列表
+#### 3.4.2 支付订单
+
+- **POST** `/orders/{id}/pay`
+- **鉴权**: 需要
+
+**说明:** 使用用户余额支付订单。系统会自动：
+1. 校验订单状态（仅 CREATED 可支付）
+2. 检查用户余额是否充足
+3. 扣除用户余额
+4. 更新订单状态为 PAID
+
+**路径参数:**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| id | long | 订单ID |
+
+**响应示例:**
+
+```json
+{
+  "code": 200,
+  "message": "支付成功",
+  "data": {
+    "orderId": 1,
+    "totalPrice": 13998.00,
+    "status": "PAID",
+    "paidAt": "2026-07-10T23:00:00",
+    "remainBalance": 6002.00
+  },
+  "timestamp": 1783694700000
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| orderId | long | 订单ID |
+| totalPrice | decimal | 支付金额 |
+| status | string | 订单状态（PAID） |
+| paidAt | string | 支付时间 |
+| remainBalance | decimal | 支付后剩余余额 |
+
+**业务错误:**
+- `400` 订单已支付
+- `400` 订单已取消
+- `400` 余额不足
+- `404` 订单不存在
+
+---
+
+#### 3.4.3 取消订单
+
+- **POST** `/orders/{id}/cancel`
+- **鉴权**: 需要
+
+**说明:** 取消未支付的订单。系统会自动：
+1. 校验订单状态（仅 CREATED 可取消）
+2. 恢复商品库存
+3. 更新订单状态为 CANCELLED
+
+**路径参数:**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| id | long | 订单ID |
+
+**响应示例:**
+
+```json
+{
+  "code": 200,
+  "message": "取消成功",
+  "data": {
+    "orderId": 1,
+    "status": "CANCELLED"
+  },
+  "timestamp": 1783694710000
+}
+```
+
+**业务错误:**
+- `400` 已支付订单不可取消
+- `400` 订单已取消
+- `404` 订单不存在
+
+---
+
+#### 3.4.4 用户订单列表
 
 - **GET** `/orders/user/{userId}`
 - **鉴权**: 需要
@@ -587,7 +676,7 @@ Token 通过 `/users/login` 接口获取。
 
 ---
 
-#### 3.4.3 订单详情
+#### 3.4.5 订单详情
 
 - **GET** `/orders/{id}`
 - **鉴权**: 需要
@@ -644,7 +733,15 @@ Token 通过 `/users/login` 接口获取。
 | 404 | 资源不存在 | 商品不存在、订单不存在 |
 | 500 | 服务器内部错误 | 未捕获异常 |
 
-### 4.3 错误响应示例
+### 4.3 订单状态说明
+
+| 状态 | 含义 | 可执行操作 |
+|------|------|------------|
+| CREATED | 待支付 | 支付、取消 |
+| PAID | 已支付 | — |
+| CANCELLED | 已取消 | — |
+
+### 4.4 错误响应示例
 
 ```json
 {
@@ -710,5 +807,10 @@ const API = {
 ### 5.5 典型业务流程
 
 ```
-注册 → 登录(获取Token) → 浏览商品(无需Token) → 加入购物车 → 查看购物车 → 创建订单(自动清空购物车) → 查看订单
+注册 → 登录(获取Token) → 浏览商品(无需Token) → 加入购物车 → 查看购物车 → 创建订单(自动清空购物车) → 支付订单(余额扣款) → 查看订单
+```
+
+**支付流程:**
+```
+创建订单(status=CREATED) → 进入支付页面 → 确认支付(余额扣款, status=PAID) / 取消订单(恢复库存, status=CANCELLED)
 ```

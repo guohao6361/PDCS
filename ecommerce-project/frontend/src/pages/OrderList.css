@@ -1,0 +1,218 @@
+.orders-page h1 {
+  margin-bottom: 20px;
+  color: #1a1a2e;
+}
+
+.empty-orders {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+}
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.order-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+
+.order-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.order-header:hover {
+  background: #f5f5f5;
+}
+
+.order-id {
+  font-weight: bold;
+  color: #1a1a2e;
+  min-width: 90px;
+}
+
+.order-status {
+  font-size: 0.85rem;
+  padding: 2px 10px;
+  border-radius: 10px;
+  min-width: 60px;
+  text-align: center;
+}
+
+.status-created {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-paid {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-cancelled {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.order-amount {
+  color: #e94560;
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-left: auto;
+}
+
+.order-date {
+  color: #999;
+  font-size: 0.85rem;
+  min-width: 140px;
+  text-align: right;
+}
+
+.order-arrow {
+  font-size: 0.7rem;
+  color: #999;
+  transition: transform 0.2s;
+}
+
+.order-arrow.expanded {
+  transform: rotate(180deg);
+}
+
+.order-detail {
+  padding: 16px 20px;
+  border-top: 1px solid #eee;
+  background: #fafafa;
+}
+
+.order-detail h4 {
+  margin-bottom: 12px;
+  color: #1a1a2e;
+}
+
+.order-items-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.order-items-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: #f0f0f0;
+  color: #666;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.order-items-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+}
+
+.order-items-table tr:last-child td {
+  border-bottom: none;
+}
+
+.item-name {
+  color: #1a1a2e;
+  font-weight: 500;
+}
+
+.item-price {
+  color: #666;
+}
+
+.item-qty {
+  color: #999;
+}
+
+.item-subtotal {
+  color: #e94560;
+  font-weight: 500;
+}
+
+.order-detail-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+  font-size: 0.95rem;
+  color: #666;
+}
+
+.detail-total {
+  color: #e94560;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+/* 订单操作按钮 */
+.order-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.btn-cancel-order {
+  padding: 8px 20px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  color: #666;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel-order:hover {
+  border-color: #999;
+  color: #333;
+}
+
+.btn-pay-order {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  background: #e94560;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-pay-order:hover {
+  background: #d63851;
+}
+
+.btn-view-order {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  background: #3498db;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-view-order:hover {
+  background: #2980b9;
+}

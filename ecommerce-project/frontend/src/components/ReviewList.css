@@ -1,0 +1,42 @@
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.review-item {
+  background: #f9f9f9;
+  padding: 12px 16px;
+  border-radius: 6px;
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.review-username {
+  font-weight: bold;
+  color: #555;
+}
+
+.review-rating {
+  color: #f5a623;
+}
+
+.review-content {
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.review-date {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.no-reviews {
+  color: #999;
+  padding: 20px 0;
+}
