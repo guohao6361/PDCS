@@ -11,7 +11,8 @@
 ```
 ops-scripts/
 ├── deploy-all.sh              # 一键部署所有微服务 ⭐
-├── deploy-single.sh           # 部署单个微服务 ⭐
+├── deploy-single.sh           # 部署单个微服务 
+├── deploy-frontend.sh         # 部署前端Web服务 ⭐
 ├── check-status.sh            # 快速检查服务状态 ⭐
 ├── USAGE.md                   # 详细使用说明
 └── README.md                  # 本文件（快速参考）
@@ -64,25 +65,39 @@ ssh root@8.163.25.118 "echo 'SSH免密登录成功！'"
 - ✅ Minikube集群正常运行
 - ✅ 服务器上有项目代码 `/root/ecommerce-project/`
 
-### 🎯 完整部署流程
+###  完整部署流程
 
 **步骤1：上传最新代码到服务器**
 
-```powershell
-# 在项目根目录执行（包含 ecommerce-project 文件夹的目录）
-scp -r ecommerce-project/* root@8.163.25.118:/root/ecommerce-project/
+⚠️ **重要提示**：为了加快上传速度，请只上传必要的文件，不要上传整个项目目录！
 
-# 或者使用绝对路径（替换为您的实际路径）
-scp -r D:\Project\paral\CourseProject\ecommerce-project\* root@8.163.25.118:/root/ecommerce-project/
+```powershell
+# 方式1：只上传修改过的微服务代码（推荐）
+# 例如只更新product-service
+scp -r ecommerce-project/product-service/* root@8.163.25.118:/root/ecommerce-project/product-service/
+
+# 方式2：如果前端有更新，上传前端构建产物和配置
+scp ecommerce-project/frontend/Dockerfile root@8.163.25.118:/root/ecommerce-project/frontend/
+scp ecommerce-project/frontend/nginx.conf root@8.163.25.118:/root/ecommerce-project/frontend/
+scp -r ecommerce-project/frontend/dist/* root@8.163.25.118:/root/ecommerce-project/frontend/dist/
+
+# 方式3：如果K8s配置有更新
+scp ecommerce-project/k8s/*.yaml root@8.163.25.118:/root/ecommerce-project/k8s/
 ```
 
-⚠️ **注意**：只需上传代码文件，**不需要上传以下tar镜像文件**：
-- `redis7.tar` - Redis镜像（服务器已配置阿里云镜像源自动拉取）
-- `mysql8.tar` - MySQL镜像（服务器已配置阿里云镜像源自动拉取）
-- `mongo6.tar` - MongoDB镜像（服务器已配置阿里云镜像源自动拉取）
-- `nginx-alpine.tar` - Nginx镜像（服务器已配置阿里云镜像源自动拉取）
+❌ **禁止上传以下内容**（会严重拖慢上传速度）：
+- `node_modules/` - 前端依赖目录（应在服务器上执行npm install）
+- `target/` - Maven编译输出目录（应在服务器上执行mvn package）
+- `*.tar` - Docker镜像文件（redis7.tar、mysql8.tar、mongo6.tar、nginx-alpine.tar等）
+- `.git/` - Git版本控制目录
+- `dist/` - 前端构建产物（除非确实有更新）
 
-这些中间件镜像在服务器上会通过K8s自动从阿里云镜像仓库拉取，无需手动上传。
+✅ **应该上传的内容**：
+- Java源代码（`.java`文件）
+- Dockerfile配置文件
+- K8s YAML配置文件
+- Nginx配置文件（`.conf`）
+- 前端源码（如果需要重新编译）
 
 **步骤2：执行部署脚本**
 
@@ -90,21 +105,39 @@ scp -r D:\Project\paral\CourseProject\ecommerce-project\* root@8.163.25.118:/roo
 # 检查服务状态（部署前建议先检查）
 ssh root@8.163.25.118 "/root/check-status.sh"
 
-# 部署单个服务（例如cart-service）
+# 部署前端Web服务（如果前端代码有更新）
+ssh root@8.163.25.118 "/root/deploy-frontend.sh"
+
+# 部署单个微服务（例如cart-service）
 ssh root@8.163.25.118 "/root/deploy-single.sh cart-service"
 
-# 部署所有服务（谨慎使用，耗时较长）
+# 部署所有微服务（谨慎使用，耗时较长）
 ssh root@8.163.25.118 "/root/deploy-all.sh"
 ```
 
-**步骤3：验证部署结果**
+**步骤3：启动端口转发**
 
 ```powershell
-# 再次检查服务状态
+# 启动端口转发（后台运行）
+ssh root@8.163.25.118 "nohup kubectl port-forward service/web-service 30080:80 --address 0.0.0.0 > /tmp/port-forward.log 2>&1 &"
+
+# 验证端口转发是否启动
+ssh root@8.163.25.118 "ps aux | grep port-forward | grep -v grep"
+```
+
+⚠️ **注意**：端口转发需要在服务器上后台运行，使用`nohup`确保进程不会因SSH断开而终止。
+
+**步骤4：验证部署结果**
+
+```powershell
+# 检查服务状态
 ssh root@8.163.25.118 "/root/check-status.sh"
 
 # 查看服务日志
 ssh root@8.163.25.118 "kubectl logs -f deployment/cart-service"
+
+# 测试前端页面访问
+curl http://8.163.25.118:30080/
 ```
 
 📖 **详细说明**: 查看 [USAGE.md](./USAGE.md) 获取每个脚本的参数说明和常见问题解答

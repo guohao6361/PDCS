@@ -54,10 +54,10 @@ docker save ${SERVICE_NAME}:v1 -o /tmp/${SERVICE_NAME}.tar && \
 echo "✅ 镜像加载完成"
 echo ""
 
-# 5. 重启Deployment
-echo "[5/6] 重启Deployment..."
-kubectl rollout restart deployment/$SERVICE_NAME
-echo "✅ Deployment已重启"
+# 5. 更新Deployment镜像并重启
+echo "[5/6] 更新Deployment镜像..."
+kubectl set image deployment/$SERVICE_NAME $SERVICE_NAME=${SERVICE_NAME}:v1
+echo "✅ 镜像已更新为 ${SERVICE_NAME}:v1"
 echo ""
 
 # 6. 等待Pod就绪

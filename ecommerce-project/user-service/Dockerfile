@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jre-alpine
+FROM docker.1ms.run/library/eclipse-temurin:17-jdk-alpine
 LABEL maintainer="ecommerce-team"
 WORKDIR /app
 COPY target/user-service-0.0.1-SNAPSHOT.jar app.jar
