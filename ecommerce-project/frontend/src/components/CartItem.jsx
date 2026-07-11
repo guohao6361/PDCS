@@ -1,3 +1,4 @@
+import { getImageUrl } from '../utils/image';
 import './CartItem.css';
 
 export default function CartItem({ item, onUpdate, onRemove }) {
@@ -5,7 +6,7 @@ export default function CartItem({ item, onUpdate, onRemove }) {
 
   return (
     <div className="cart-item">
-      <img src={product.image} alt={product.name} className="cart-item-image" />
+      <img src={getImageUrl(product.image)} alt={product.name} className="cart-item-image" />
       <div className="cart-item-info">
         <h3>{product.name}</h3>
         <p className="cart-item-price">¥{product.price}</p>

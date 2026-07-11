@@ -19,16 +19,25 @@ instance.interceptors.response.use(
     const { code, message, data } = response.data;
     if (code === 200) return data;
     if (code === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 100);
+      handleUnauthorized();
       return Promise.reject(new Error('登录已过期，请重新登录'));
     }
     return Promise.reject(new Error(message));
   },
-  error => Promise.reject(new Error('网络异常，请检查连接'))
+  error => {
+    if (error.response && error.response.status === 401) {
+      handleUnauthorized();
+      return Promise.reject(new Error('登录已过期，请重新登录'));
+    }
+    return Promise.reject(new Error('网络异常，请检查连接'));
+  }
 );
+
+function handleUnauthorized() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  // 通知 AuthContext 清除 React 状态
+  window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+}
 
 export default instance;

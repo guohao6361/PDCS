@@ -234,8 +234,6 @@ public class OrderServiceImpl implements OrderService {
         if (order.getCreatedAt() != null && order.getCreatedAt().plusMinutes(15).isBefore(LocalDateTime.now())) {
             order.setStatus("CANCELLED");
             orderRepository.save(order);
-            // 恢复库存
-            restoreOrderStock(order);
             throw new BusinessException(400, "订单已超时（超过15分钟），已自动取消");
         }
 
@@ -299,9 +297,6 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(400, "仅可取消UNPAID状态的订单，当前状态: " + order.getStatus());
         }
 
-        // 恢复库存
-        restoreOrderStock(order);
-
         order.setStatus("CANCELLED");
         Order savedOrder = orderRepository.save(order);
         log.info("订单取消成功: orderId={}, userId={}", orderId, order.getUserId());
@@ -348,6 +343,17 @@ public class OrderServiceImpl implements OrderService {
     public List<OrderResponse> getOrdersByMerchantId(Integer merchantId) {
         List<Order> orders = orderRepository.findByMerchantIdOrderByCreatedAtDesc(merchantId);
         return orders.stream().map(this::toResponse).toList();
+    }
+
+    @Override
+    public void deleteUnpaidOrdersByMerchant(Integer merchantId) {
+        List<Order> orders = orderRepository.findByMerchantIdOrderByCreatedAtDesc(merchantId);
+        for (Order order : orders) {
+            if ("UNPAID".equals(order.getStatus())) {
+                orderRepository.deleteById(order.getId());
+            }
+        }
+        log.info("商家未支付订单已删除: merchantId={}", merchantId);
     }
 
     @Override

@@ -137,6 +137,12 @@ public class ProductServiceImpl implements CommandLineRunner {
 
     // 商家发布商品
     public Product createProduct(Product product) {
+        // 自动生成ID
+        if (product.getId() == null) {
+            Query query = new Query().with(Sort.by(Sort.Direction.DESC, "id")).limit(1);
+            Product last = mongoTemplate.findOne(query, Product.class);
+            product.setId(last == null ? 1 : last.getId() + 1);
+        }
         return productRepository.save(product);
     }
 
@@ -165,6 +171,15 @@ public class ProductServiceImpl implements CommandLineRunner {
     // 商家商品列表
     public List<Product> getProductsByMerchant(Integer merchantId) {
         return productRepository.findByMerchantId(merchantId);
+    }
+
+    // 删除商家所有商品
+    public void deleteProductsByMerchant(Integer merchantId) {
+        List<Product> products = productRepository.findByMerchantId(merchantId);
+        for (Product p : products) {
+            productRepository.deleteById(p.getId());
+        }
+        log.info("商家商品已删除: merchantId={}, count={}", merchantId, products.size());
     }
 
     // ==========================================================

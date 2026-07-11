@@ -20,3 +20,6 @@ app:
     password-min-length: ${PASSWORD_MIN_LENGTH:6}
   upload:
     avatars-dir: ${AVATARS_DIR:uploads/avatars}
+  service:
+    product-url: ${PRODUCT_SERVICE_URL:http://localhost:8082}
+    order-url: ${ORDER_SERVICE_URL:http://localhost:8084}

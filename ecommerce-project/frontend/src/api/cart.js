@@ -11,3 +11,9 @@ export const removeFromCart = (userId, productId) =>
 
 export const clearCart = (userId) =>
   http.delete(`/cart/${userId}`);
+
+export const updateCartQuantity = (userId, productId, quantity) =>
+  http.put(`/cart/${userId}/${productId}`, { quantity });
+
+export const removeSelected = (userId, productIds) =>
+  http.post(`/cart/${userId}/remove-selected`, { productIds });

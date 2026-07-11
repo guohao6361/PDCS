@@ -17,6 +17,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -43,6 +44,15 @@ public class UserServiceImpl implements UserService, CommandLineRunner {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Value("${app.service.product-url:http://localhost:8082}")
+    private String productServiceUrl;
+
+    @Value("${app.service.order-url:http://localhost:8084}")
+    private String orderServiceUrl;
+
     @Value("${app.user.default-balance:1000.00}")
     private BigDecimal defaultBalance;
 
@@ -64,7 +74,9 @@ public class UserServiceImpl implements UserService, CommandLineRunner {
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
         user.setBalance(defaultBalance);
-        user.setRole("USER"); // 安全修复: 注册时强制 USER 角色，禁止客户端指定角色
+        // 仅允许 USER 或 MERCHANT 角色，禁止注册 ADMIN
+        String finalRole = "MERCHANT".equals(role) ? "MERCHANT" : "USER";
+        user.setRole(finalRole);
         user.setPhone(phone);
         user.setEmail(email);
         if (payPassword != null && !payPassword.isBlank()) {
@@ -293,12 +305,26 @@ public class UserServiceImpl implements UserService, CommandLineRunner {
 
     @Override
     public void deleteUser(Integer id) {
-        if (!userRepository.existsById(id)) {
-            throw new BusinessException(404, "用户不存在");
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(404, "用户不存在"));
+        
+        // 商家删除时，级联删除其商品和未支付订单
+        if ("MERCHANT".equals(user.getRole())) {
+            try {
+                restTemplate.delete(productServiceUrl + "/products/merchant/" + id);
+            } catch (Exception e) {
+                log.warn("删除商家商品失败: {}", e.getMessage());
+            }
+            try {
+                restTemplate.delete(orderServiceUrl + "/orders/merchant/" + id + "/unpaid");
+            } catch (Exception e) {
+                log.warn("删除商家未支付订单失败: {}", e.getMessage());
+            }
         }
+        
         addressRepository.deleteByUserId(id);
         userRepository.deleteById(id);
-        log.info("管理员删除用户: userId={}", id);
+        log.info("删除用户: userId={}, role={}", id, user.getRole());
     }
 
     @Override

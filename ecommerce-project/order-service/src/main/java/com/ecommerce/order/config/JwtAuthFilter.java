@@ -1,6 +1,7 @@
 package com.ecommerce.order.config;
 
 import com.ecommerce.common.ApiResponse;
+import com.ecommerce.common.InternalApi;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -16,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.method.HandlerMethod;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
@@ -48,6 +50,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // 检查是否是内部服务调用端点
+        Object handler = request.getAttribute("org.springframework.web.servlet.HandlerMapping.bestMatchingHandler");
+        if (handler instanceof HandlerMethod handlerMethod && handlerMethod.hasMethodAnnotation(InternalApi.class)) {
             filterChain.doFilter(request, response);
             return;
         }

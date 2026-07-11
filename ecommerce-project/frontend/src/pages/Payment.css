@@ -1,3 +1,59 @@
+.payment-page { max-width: 600px; margin: 0 auto; padding: 20px 0; }
+.payment-page h1 { margin-bottom: 20px; }
+.btn-back-orders { background: none; border: none; color: #1890ff; cursor: pointer; font-size: 14px; margin-bottom: 12px; padding: 0; }
+
+.payment-card { background: #fff; border-radius: 8px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.payment-countdown { background: #fff7e6; border: 1px solid #ffd591; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 16px; text-align: center; }
+.countdown-value { font-weight: 700; color: #fa541c; font-size: 24px; font-family: monospace; }
+
+.payment-order-info { margin-bottom: 20px; }
+.info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
+.info-row .label { color: #999; }
+.info-row .value { font-weight: 500; }
+
+.payment-items { margin-bottom: 20px; }
+.payment-items h3 { margin-bottom: 12px; }
+.payment-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f5f5f5; font-size: 14px; }
+.payment-item .item-name { flex: 1; }
+.payment-item .item-qty { color: #999; margin: 0 16px; }
+.payment-total { display: flex; justify-content: space-between; padding: 16px 0; font-size: 18px; font-weight: 600; }
+.total-amount { color: #e94560; }
+
+.payment-actions { }
+.balance-info { padding: 12px 0; font-size: 15px; }
+.balance-warn { color: #ff4d4f; margin-left: 8px; }
+
+.address-section { margin-bottom: 20px; }
+.address-section h3 { margin-bottom: 12px; }
+.no-address { color: #999; padding: 12px 0; }
+.address-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.address-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px; border: 1px solid #e8e8e8; border-radius: 6px; transition: border-color 0.2s; }
+.address-item.selected { border-color: #1890ff; background: #e6f7ff; }
+.address-radio { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; flex: 1; }
+.address-radio input { margin-top: 4px; }
+.address-info { font-size: 14px; line-height: 1.5; }
+.default-tag { display: inline-block; padding: 1px 6px; background: #e6f7ff; color: #1890ff; border-radius: 3px; font-size: 12px; margin-left: 6px; }
+.btn-delete-address { padding: 4px 10px; border: 1px solid #ff4d4f; color: #ff4d4f; background: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+
+.new-address-form { background: #fafafa; border: 1px solid #e8e8e8; border-radius: 8px; padding: 16px; margin-top: 8px; }
+.new-address-form input { width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #d9d9d9; border-radius: 4px; }
+.address-form-actions { display: flex; gap: 8px; }
+.address-form-actions button { padding: 8px 16px; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; }
+.address-form-actions button:first-child { background: #1890ff; color: #fff; border: none; }
+.btn-new-address { padding: 8px 16px; background: none; border: 1px dashed #1890ff; color: #1890ff; border-radius: 6px; cursor: pointer; width: 100%; }
+
+.pay-password-section { margin-bottom: 20px; }
+.pay-password-section h3 { margin-bottom: 8px; }
+.pay-password-input { width: 200px; padding: 10px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 16px; letter-spacing: 4px; text-align: center; }
+
+.action-buttons { display: flex; gap: 12px; margin-top: 16px; }
+.btn-cancel { flex: 1; padding: 12px; border: 1px solid #d9d9d9; background: #fff; border-radius: 6px; cursor: pointer; font-size: 15px; }
+.btn-pay { flex: 2; padding: 12px; background: #1890ff; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: 500; }
+.btn-pay:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.pay-success, .pay-cancelled, .pay-info { text-align: center; padding: 30px 0; }
+.success-icon { font-size: 48px; color: #52c41a; margin-bottom: 12px; }
+.btn-back { padding: 10px 24px; background: #1890ff; color: #fff; border: none; border-radius: 6px; cursor: pointer; margin-top: 16px; }
 .payment-page {
   max-width: 600px;
   margin: 0 auto;

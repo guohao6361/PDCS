@@ -145,4 +145,12 @@ public class ProductController {
         List<Product> products = productService.getProductsByMerchant(merchantId);
         return ResponseEntity.ok(ApiResponse.success(products));
     }
+
+    // 删除商家所有商品（内部服务调用）
+    @DeleteMapping("/products/merchant/{merchantId}")
+    @InternalApi
+    public ResponseEntity<ApiResponse<Void>> deleteProductsByMerchant(@PathVariable Integer merchantId) {
+        productService.deleteProductsByMerchant(merchantId);
+        return ResponseEntity.ok(ApiResponse.success("商家商品已删除"));
+    }
 }

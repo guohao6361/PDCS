@@ -1,7 +1,2 @@
-import http from './axios';
-
-export const payOrder = (orderId) =>
-  http.post(`/orders/${orderId}/pay`);
-
-export const cancelOrder = (orderId) =>
-  http.post(`/orders/${orderId}/cancel`);
+// 已迁移到 order.js，保留兼容
+export { payOrder, cancelOrder } from './order';

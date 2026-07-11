@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCart, removeFromCart, clearCart } from '../api/cart';
+import { getCart, removeFromCart, clearCart, updateCartQuantity } from '../api/cart';
 import { getProduct } from '../api/product';
-import { createOrder } from '../api/order';
+import { createSelectedOrder } from '../api/order';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/Toast';
 import './Cart.css';
 
 export default function Cart() {
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [items, setItems] = useState([]);
   const [selected, setSelected] = useState(new Set());
   const [loading, setLoading] = useState(true);
@@ -24,7 +26,7 @@ export default function Cart() {
             const product = await getProduct(ci.productId);
             return { ...ci, product };
           } catch {
-            return { ...ci, product: { id: ci.productId, name: '商品已下架', price: 0 } };
+            return { ...ci, product: { id: ci.productId, name: '商品已下架', price: 0, stock: 0 } };
           }
         })
       );
@@ -52,23 +54,42 @@ export default function Cart() {
     else setSelected(new Set(items.map(i => i.productId)));
   };
 
+  const handleUpdateQuantity = async (productId, newQty) => {
+    if (newQty < 1) {
+      // 数量为 1 时点减号，删除商品
+      await handleRemove(productId);
+      return;
+    }
+    const item = items.find(i => i.productId === productId);
+    if (item && newQty > (item.product?.stock || 0)) {
+      toast('不能超过库存数量', 'error');
+      return;
+    }
+    try {
+      await updateCartQuantity(user.id, productId, newQty);
+      await loadCart();
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  };
+
   const handleRemove = async (productId) => {
     try {
       await removeFromCart(user.id, productId);
       await loadCart();
     } catch (err) {
-      alert(err.message);
+      toast(err.message, 'error');
     }
   };
 
   const handleCheckout = async () => {
-    if (selected.size === 0) return alert('请先选择商品');
+    if (selected.size === 0) return toast('请先选择商品', 'error');
     try {
-      const order = await createOrder(user.id);
-      updateUser({ ...user, balance: user.balance - order.totalPrice });
+      const productIds = Array.from(selected);
+      const order = await createSelectedOrder(user.id, productIds);
       navigate(`/payment/${order.id}`);
     } catch (err) {
-      alert(err.message);
+      toast(err.message, 'error');
     }
   };
 
@@ -78,7 +99,7 @@ export default function Cart() {
       setItems([]);
       setSelected(new Set());
     } catch (err) {
-      alert(err.message);
+      toast(err.message, 'error');
     }
   };
 
@@ -114,7 +135,15 @@ export default function Cart() {
                 </label>
                 <div className="cart-item-info">
                   <h3>{item.product?.name || `商品#${item.productId}`}</h3>
-                  <p className="cart-item-price">¥{item.product?.price || 0} x {item.quantity}</p>
+                  <p className="cart-item-price">¥{item.product?.price || 0}</p>
+                </div>
+                <div className="cart-item-quantity">
+                  <button onClick={() => handleUpdateQuantity(item.productId, item.quantity - 1)}>-</button>
+                  <span>{item.quantity}</span>
+                  <button
+                    onClick={() => handleUpdateQuantity(item.productId, item.quantity + 1)}
+                    disabled={item.quantity >= (item.product?.stock || 0)}
+                  >+</button>
                 </div>
                 <p className="cart-item-subtotal">¥{(item.product?.price || 0) * item.quantity}</p>
                 <button onClick={() => handleRemove(item.productId)} className="btn-remove">删除</button>

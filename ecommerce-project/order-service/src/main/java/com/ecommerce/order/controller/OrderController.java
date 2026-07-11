@@ -2,6 +2,7 @@ package com.ecommerce.order.controller;
 
 import com.ecommerce.common.AdminRequired;
 import com.ecommerce.common.ApiResponse;
+import com.ecommerce.common.InternalApi;
 import com.ecommerce.order.dto.*;
 import com.ecommerce.order.service.OrderService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -85,6 +86,14 @@ public class OrderController {
     public ResponseEntity<ApiResponse<List<OrderResponse>>> getOrdersByMerchant(@PathVariable Integer merchantId) {
         List<OrderResponse> orders = orderService.getOrdersByMerchantId(merchantId);
         return ResponseEntity.ok(ApiResponse.success(orders));
+    }
+
+    // 删除商家未支付订单（内部服务调用）
+    @DeleteMapping("/merchant/{merchantId}/unpaid")
+    @InternalApi
+    public ResponseEntity<ApiResponse<Void>> deleteUnpaidOrdersByMerchant(@PathVariable Integer merchantId) {
+        orderService.deleteUnpaidOrdersByMerchant(merchantId);
+        return ResponseEntity.ok(ApiResponse.success("商家未支付订单已删除"));
     }
 
     // 管理员查看所有订单

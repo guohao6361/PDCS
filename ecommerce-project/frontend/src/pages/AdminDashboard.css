@@ -1,0 +1,3 @@
+@import url('./MerchantDashboard.css');
+
+.admin-dashboard .admin-table button:first-child { background: #1890ff; color: #fff; border: none; }
