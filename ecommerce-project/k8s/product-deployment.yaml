@@ -19,9 +19,7 @@ spec:
             - containerPort: 8082
           env:
             - name: MONGO_URI
-              value: "mongodb://mongodb-service:27017/ecommerce"
-            - name: JWT_SECRET
-              value: "myDefaultJwtSecretKeyForDevelopmentOnly123456"
+              value: "mongodb://mongodb-service:27017/ecommerce" # 👈 直接连接我们刚刚建好的有状态的 mongodb-service
 ---
 apiVersion: v1
 kind: Service
