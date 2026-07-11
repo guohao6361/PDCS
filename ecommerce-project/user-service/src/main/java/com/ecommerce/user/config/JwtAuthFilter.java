@@ -1,4 +1,4 @@
-package com.ecommerce.order.config;
+package com.ecommerce.user.config;
 
 import com.ecommerce.common.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,7 +54,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            writeUnauthorized(response, "请先登录");
+            filterChain.doFilter(request, response);
             return;
         }
 
@@ -71,14 +71,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             request.setAttribute("userRole", claims.get("role", String.class));
             filterChain.doFilter(request, response);
         } catch (JwtException e) {
-            writeUnauthorized(response, "Token无效或已过期");
+            filterChain.doFilter(request, response);
         }
-    }
-
-    private void writeUnauthorized(HttpServletResponse response, String message) throws IOException {
-        response.setStatus(HttpServletResponse.SC_OK);
-        response.setContentType("application/json;charset=UTF-8");
-        ApiResponse<?> apiResponse = ApiResponse.error(401, message);
-        response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
     }
 }

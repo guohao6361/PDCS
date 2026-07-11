@@ -10,5 +10,10 @@ public record UserRequest(
 
         @NotBlank(message = "密码不能为空")
         @Size(min = 6, max = 50, message = "密码长度需在6-50之间")
-        String password
+        String password,
+
+        String role,
+        String payPassword,
+        String phone,
+        String email
 ) {}

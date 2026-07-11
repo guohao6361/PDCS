@@ -19,7 +19,13 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,11 +47,22 @@ public class ProductServiceImpl implements CommandLineRunner {
     @Value("${app.product.default-size:10}")
     private int defaultPageSize;
 
+    @Value("${app.upload.products-dir:uploads/products}")
+    private String productsDir;
+
     // 获取商品列表（分页）
     public PageResponse<Product> getAllProducts(int page, int size) {
         if (size <= 0) size = defaultPageSize;
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by("id").ascending());
         Page<Product> pageResult = productRepository.findAll(pageRequest);
+        return new PageResponse<>(pageResult.getContent(), page, size, (int) pageResult.getTotalElements());
+    }
+
+    // 搜索商品（按名称或分类）
+    public PageResponse<Product> searchProducts(String keyword, int page, int size) {
+        if (size <= 0) size = defaultPageSize;
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by("id").ascending());
+        Page<Product> pageResult = productRepository.searchByNameOrCategory(keyword, pageRequest);
         return new PageResponse<>(pageResult.getContent(), page, size, (int) pageResult.getTotalElements());
     }
 
@@ -75,6 +92,69 @@ public class ProductServiceImpl implements CommandLineRunner {
             throw new BusinessException(400, "商品库存不足或商品不存在: " + productId);
         }
         log.info("库存扣减成功: productId={}, quantity={}", productId, quantity);
+    }
+
+    // 原子恢复库存
+    public void restoreStock(Integer productId, Integer quantity) {
+        Query query = new Query(Criteria.where("_id").is(productId));
+        Update update = new Update().inc("stock", quantity);
+        var result = mongoTemplate.updateFirst(query, update, Product.class);
+        if (result.getModifiedCount() == 0) {
+            throw new BusinessException(404, "商品不存在: " + productId);
+        }
+        log.info("库存恢复成功: productId={}, quantity={}", productId, quantity);
+    }
+
+    // 上传商品图片
+    public String uploadProductImage(byte[] fileData, String originalFilename) {
+        try {
+            Path dir = Paths.get(productsDir);
+            Files.createDirectories(dir);
+            String ext = originalFilename != null && originalFilename.contains(".")
+                    ? originalFilename.substring(originalFilename.lastIndexOf("."))
+                    : ".jpg";
+            String filename = "product_" + System.currentTimeMillis() + ext;
+            Path filePath = dir.resolve(filename);
+            Files.write(filePath, fileData, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            String imageUrl = "/uploads/products/" + filename;
+            log.info("商品图片上传成功: url={}", imageUrl);
+            return imageUrl;
+        } catch (IOException e) {
+            log.error("商品图片上传失败: {}", e.getMessage());
+            throw new BusinessException(500, "图片上传失败");
+        }
+    }
+
+    // 商家发布商品
+    public Product createProduct(Product product) {
+        return productRepository.save(product);
+    }
+
+    // 商家修改商品
+    public Product updateProduct(Integer id, Product updates) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(404, "商品不存在"));
+        if (updates.getName() != null) product.setName(updates.getName());
+        if (updates.getPrice() != null) product.setPrice(updates.getPrice());
+        if (updates.getStock() != null) product.setStock(updates.getStock());
+        if (updates.getCategory() != null) product.setCategory(updates.getCategory());
+        if (updates.getDescription() != null) product.setDescription(updates.getDescription());
+        if (updates.getImageUrl() != null) product.setImageUrl(updates.getImageUrl());
+        return productRepository.save(product);
+    }
+
+    // 商家删除商品
+    public void deleteProduct(Integer id) {
+        if (!productRepository.existsById(id)) {
+            throw new BusinessException(404, "商品不存在");
+        }
+        productRepository.deleteById(id);
+        log.info("商品删除成功: productId={}", id);
+    }
+
+    // 商家商品列表
+    public List<Product> getProductsByMerchant(Integer merchantId) {
+        return productRepository.findByMerchantId(merchantId);
     }
 
     // ==========================================================

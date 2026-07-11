@@ -18,3 +18,5 @@ app:
   user:
     default-balance: ${USER_DEFAULT_BALANCE:1000.00}
     password-min-length: ${PASSWORD_MIN_LENGTH:6}
+  upload:
+    avatars-dir: ${AVATARS_DIR:uploads/avatars}

@@ -68,6 +68,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     .getPayload();
             request.setAttribute("userId", claims.get("userId", Integer.class));
             request.setAttribute("username", claims.getSubject());
+            request.setAttribute("userRole", claims.get("role", String.class));
             filterChain.doFilter(request, response);
         } catch (JwtException e) {
             writeUnauthorized(response, "Token无效或已过期");

@@ -7,6 +7,8 @@ import java.util.List;
 public class OrderResponse {
     private Long id;
     private Integer userId;
+    private Integer merchantId;
+    private Integer addressId;
     private BigDecimal totalPrice;
     private String status;
     private List<OrderItemResponse> items;
@@ -32,6 +34,10 @@ public class OrderResponse {
     public void setId(Long id) { this.id = id; }
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
+    public Integer getMerchantId() { return merchantId; }
+    public void setMerchantId(Integer merchantId) { this.merchantId = merchantId; }
+    public Integer getAddressId() { return addressId; }
+    public void setAddressId(Integer addressId) { this.addressId = addressId; }
     public BigDecimal getTotalPrice() { return totalPrice; }
     public void setTotalPrice(BigDecimal totalPrice) { this.totalPrice = totalPrice; }
     public String getStatus() { return status; }

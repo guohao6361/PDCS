@@ -15,6 +15,7 @@ app:
   service:
     cart-url: ${CART_SERVICE_URL:http://localhost:8083}
     product-url: ${PRODUCT_SERVICE_URL:http://localhost:8082}
+    user-url: ${USER_SERVICE_URL:http://localhost:8081}
     connect-timeout: ${SERVICE_CONNECT_TIMEOUT:5000}
     read-timeout: ${SERVICE_READ_TIMEOUT:10000}
   jwt:

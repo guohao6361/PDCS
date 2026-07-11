@@ -11,3 +11,5 @@ app:
     default-size: ${PRODUCT_DEFAULT_SIZE:10}
   jwt:
     secret: ${JWT_SECRET:myDefaultJwtSecretKeyForDevelopmentOnly123456}
+  upload:
+    products-dir: ${PRODUCTS_DIR:uploads/products}

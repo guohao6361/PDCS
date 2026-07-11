@@ -9,7 +9,10 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class ProductController {
@@ -23,6 +26,16 @@ public class ProductController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         PageResponse<Product> result = productService.getAllProducts(page, size);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    // 商品搜索（按名称或分类）
+    @GetMapping("/products/search")
+    public ResponseEntity<ApiResponse<PageResponse<Product>>> searchProducts(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        PageResponse<Product> result = productService.searchProducts(keyword, page, size);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
@@ -54,5 +67,56 @@ public class ProductController {
             @RequestParam Integer quantity) {
         productService.deductStock(id, quantity);
         return ResponseEntity.ok(ApiResponse.success("库存扣减成功"));
+    }
+
+    // 恢复库存（内部服务调用）
+    @PutMapping("/products/{id}/restore-stock")
+    public ResponseEntity<ApiResponse<Void>> restoreStock(
+            @PathVariable Integer id,
+            @RequestParam Integer quantity) {
+        productService.restoreStock(id, quantity);
+        return ResponseEntity.ok(ApiResponse.success("库存恢复成功"));
+    }
+
+    // 上传商品图片
+    @PostMapping("/products/upload")
+    public ResponseEntity<ApiResponse<Map<String, String>>> uploadProductImage(
+            @RequestParam("file") MultipartFile file) {
+        try {
+            String imageUrl = productService.uploadProductImage(file.getBytes(), file.getOriginalFilename());
+            return ResponseEntity.ok(ApiResponse.success(Map.of("imageUrl", imageUrl)));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // 商家发布商品
+    @PostMapping("/products")
+    public ResponseEntity<ApiResponse<Product>> createProduct(@RequestBody Product product) {
+        Product saved = productService.createProduct(product);
+        return ResponseEntity.ok(ApiResponse.success(saved));
+    }
+
+    // 商家修改商品
+    @PutMapping("/products/{id}")
+    public ResponseEntity<ApiResponse<Product>> updateProduct(
+            @PathVariable Integer id,
+            @RequestBody Product product) {
+        Product updated = productService.updateProduct(id, product);
+        return ResponseEntity.ok(ApiResponse.success(updated));
+    }
+
+    // 商家删除商品
+    @DeleteMapping("/products/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Integer id) {
+        productService.deleteProduct(id);
+        return ResponseEntity.ok(ApiResponse.success("商品删除成功"));
+    }
+
+    // 商家商品列表
+    @GetMapping("/products/merchant/{merchantId}")
+    public ResponseEntity<ApiResponse<List<Product>>> getProductsByMerchant(@PathVariable Integer merchantId) {
+        List<Product> products = productService.getProductsByMerchant(merchantId);
+        return ResponseEntity.ok(ApiResponse.success(products));
     }
 }
