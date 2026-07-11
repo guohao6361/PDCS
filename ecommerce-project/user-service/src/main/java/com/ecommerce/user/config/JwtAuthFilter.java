@@ -20,6 +20,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -43,6 +44,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
     }
 
+    private static final List<String> PUBLIC_PATHS = List.of("/users/register", "/users/login");
+
+    // 内部服务调用端点（跳过 JWT，仅限微服务网络内部访问）
+    private boolean isInternalPath(String path) {
+        return path.matches("/users/\\d+/deduct-balance")
+                || path.matches("/users/\\d+/verify-pay-password");
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -52,9 +61,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
+        String path = request.getRequestURI();
+
+        // 公开端点（注册/登录）无需 Token
+        if (PUBLIC_PATHS.contains(path)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // 内部服务调用端点（跳过 JWT）
+        if (isInternalPath(path)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // 其他端点强制要求 JWT Token
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
+            writeUnauthorized(response, "请先登录");
             return;
         }
 
@@ -71,7 +95,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             request.setAttribute("userRole", claims.get("role", String.class));
             filterChain.doFilter(request, response);
         } catch (JwtException e) {
-            filterChain.doFilter(request, response);
+            writeUnauthorized(response, "Token无效或已过期");
         }
+    }
+
+    private void writeUnauthorized(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.setContentType("application/json;charset=UTF-8");
+        ApiResponse<?> apiResponse = ApiResponse.error(401, message);
+        response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
     }
 }

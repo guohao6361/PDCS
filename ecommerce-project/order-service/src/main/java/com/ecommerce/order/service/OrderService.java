@@ -7,9 +7,9 @@ public interface OrderService {
     OrderResponse createOrder(Integer userId);
     OrderResponse createSelectedOrder(Integer userId, List<Integer> productIds);
     List<OrderResponse> getOrdersByUserId(Integer userId);
-    OrderResponse getOrderById(Long id);
-    OrderResponse payOrder(Long orderId, String payPassword, Integer addressId);
-    OrderResponse cancelOrder(Long orderId);
+    OrderResponse getOrderById(Integer requestUserId, Long id);
+    OrderResponse payOrder(Integer requestUserId, Long orderId, String payPassword, Integer addressId);
+    OrderResponse cancelOrder(Integer requestUserId, Long orderId);
     OrderResponse updateOrderStatus(Long orderId, String newStatus);
     List<OrderResponse> getOrdersByMerchantId(Integer merchantId);
     List<OrderResponse> getAllOrders();

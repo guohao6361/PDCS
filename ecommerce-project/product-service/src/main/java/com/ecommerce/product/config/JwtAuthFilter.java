@@ -52,6 +52,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
+        // 内部服务调用端点（库存扣减/恢复，跳过 JWT）
+        String path = request.getRequestURI();
+        if (path.matches("/products/\\d+/(deduct-stock|restore-stock)")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // GET 请求（浏览商品/评价）无需 Token
+        if ("GET".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // 其他写操作强制要求 JWT Token
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             writeUnauthorized(response, "请先登录");

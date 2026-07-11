@@ -1,10 +1,12 @@
 package com.ecommerce.product.controller;
 
 import com.ecommerce.common.ApiResponse;
+import com.ecommerce.common.InternalApi;
 import com.ecommerce.common.PageResponse;
 import com.ecommerce.product.entity.Product;
 import com.ecommerce.product.entity.Review;
 import com.ecommerce.product.service.impl.ProductServiceImpl;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -62,6 +64,7 @@ public class ProductController {
 
     // 扣减库存（内部服务调用）
     @PutMapping("/products/{id}/deduct-stock")
+    @InternalApi
     public ResponseEntity<ApiResponse<Void>> deductStock(
             @PathVariable Integer id,
             @RequestParam Integer quantity) {
@@ -71,6 +74,7 @@ public class ProductController {
 
     // 恢复库存（内部服务调用）
     @PutMapping("/products/{id}/restore-stock")
+    @InternalApi
     public ResponseEntity<ApiResponse<Void>> restoreStock(
             @PathVariable Integer id,
             @RequestParam Integer quantity) {
@@ -81,9 +85,14 @@ public class ProductController {
     // 上传商品图片
     @PostMapping("/products/upload")
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadProductImage(
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest httpRequest) {
+        String role = (String) httpRequest.getAttribute("userRole");
+        if (!"MERCHANT".equals(role) && !"ADMIN".equals(role)) {
+            return ResponseEntity.ok(ApiResponse.error(403, "需要商家或管理员权限"));
+        }
         try {
-            String imageUrl = productService.uploadProductImage(file.getBytes(), file.getOriginalFilename());
+            String imageUrl = productService.uploadProductImage(file.getBytes(), file.getOriginalFilename(), file.getContentType());
             return ResponseEntity.ok(ApiResponse.success(Map.of("imageUrl", imageUrl)));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
@@ -92,7 +101,13 @@ public class ProductController {
 
     // 商家发布商品
     @PostMapping("/products")
-    public ResponseEntity<ApiResponse<Product>> createProduct(@RequestBody Product product) {
+    public ResponseEntity<ApiResponse<Product>> createProduct(
+            @RequestBody Product product,
+            HttpServletRequest httpRequest) {
+        String role = (String) httpRequest.getAttribute("userRole");
+        if (!"MERCHANT".equals(role) && !"ADMIN".equals(role)) {
+            return ResponseEntity.ok(ApiResponse.error(403, "需要商家或管理员权限"));
+        }
         Product saved = productService.createProduct(product);
         return ResponseEntity.ok(ApiResponse.success(saved));
     }
@@ -101,14 +116,25 @@ public class ProductController {
     @PutMapping("/products/{id}")
     public ResponseEntity<ApiResponse<Product>> updateProduct(
             @PathVariable Integer id,
-            @RequestBody Product product) {
+            @RequestBody Product product,
+            HttpServletRequest httpRequest) {
+        String role = (String) httpRequest.getAttribute("userRole");
+        if (!"MERCHANT".equals(role) && !"ADMIN".equals(role)) {
+            return ResponseEntity.ok(ApiResponse.error(403, "需要商家或管理员权限"));
+        }
         Product updated = productService.updateProduct(id, product);
         return ResponseEntity.ok(ApiResponse.success(updated));
     }
 
     // 商家删除商品
     @DeleteMapping("/products/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(
+            @PathVariable Integer id,
+            HttpServletRequest httpRequest) {
+        String role = (String) httpRequest.getAttribute("userRole");
+        if (!"MERCHANT".equals(role) && !"ADMIN".equals(role)) {
+            return ResponseEntity.ok(ApiResponse.error(403, "需要商家或管理员权限"));
+        }
         productService.deleteProduct(id);
         return ResponseEntity.ok(ApiResponse.success("商品删除成功"));
     }

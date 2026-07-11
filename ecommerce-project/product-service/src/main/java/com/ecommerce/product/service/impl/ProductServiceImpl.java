@@ -105,8 +105,18 @@ public class ProductServiceImpl implements CommandLineRunner {
         log.info("库存恢复成功: productId={}, quantity={}", productId, quantity);
     }
 
+    private static final List<String> ALLOWED_IMAGE_TYPES = List.of("image/jpeg", "image/png", "image/gif", "image/webp");
+
     // 上传商品图片
     public String uploadProductImage(byte[] fileData, String originalFilename) {
+        return uploadProductImage(fileData, originalFilename, null);
+    }
+
+    public String uploadProductImage(byte[] fileData, String originalFilename, String contentType) {
+        // 安全修复: 文件类型校验
+        if (contentType != null && !ALLOWED_IMAGE_TYPES.contains(contentType.toLowerCase())) {
+            throw new BusinessException(400, "仅支持 JPG/PNG/GIF/WebP 图片格式");
+        }
         try {
             Path dir = Paths.get(productsDir);
             Files.createDirectories(dir);

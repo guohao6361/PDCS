@@ -2,6 +2,7 @@ package com.ecommerce.user.controller;
 
 import com.ecommerce.common.AdminRequired;
 import com.ecommerce.common.ApiResponse;
+import com.ecommerce.common.InternalApi;
 import com.ecommerce.user.dto.*;
 import com.ecommerce.user.entity.Address;
 import com.ecommerce.user.entity.User;
@@ -38,6 +39,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}/deduct-balance")
+    @InternalApi
     public ResponseEntity<ApiResponse<Void>> deductBalance(
             @PathVariable Integer userId,
             @RequestParam BigDecimal amount) {
@@ -109,7 +111,7 @@ public class UserController {
             @PathVariable Integer id,
             @RequestParam("file") MultipartFile file) {
         try {
-            String avatarUrl = userService.uploadAvatar(id, file.getBytes(), file.getOriginalFilename());
+            String avatarUrl = userService.uploadAvatar(id, file.getBytes(), file.getOriginalFilename(), file.getContentType());
             return ResponseEntity.ok(ApiResponse.success(Map.of("avatarUrl", avatarUrl)));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
@@ -210,6 +212,7 @@ public class UserController {
 
     // 验证支付密码（内部服务调用）
     @PostMapping("/{id}/verify-pay-password")
+    @InternalApi
     public ResponseEntity<ApiResponse<Void>> verifyPayPassword(
             @PathVariable Integer id,
             @RequestBody Map<String, String> body) {

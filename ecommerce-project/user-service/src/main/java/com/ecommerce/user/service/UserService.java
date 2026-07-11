@@ -20,6 +20,7 @@ public interface UserService {
     void changePayPassword(Integer id, String oldPayPassword, String newPayPassword);
     void resetPassword(Integer id, String type, String newPassword);
     String uploadAvatar(Integer id, byte[] fileData, String originalFilename);
+    String uploadAvatar(Integer id, byte[] fileData, String originalFilename, String contentType);
 
     List<Address> getAddresses(Integer userId);
     Address addAddress(Integer userId, Address address);

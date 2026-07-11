@@ -4,6 +4,7 @@ import com.ecommerce.cart.dto.CartItemRequest;
 import com.ecommerce.cart.dto.CartResponse;
 import com.ecommerce.cart.service.CartService;
 import com.ecommerce.common.ApiResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,26 +21,49 @@ public class CartController {
     private CartService cartService;
 
     @PostMapping("/add")
-    public ResponseEntity<ApiResponse<Void>> add(@Valid @RequestBody CartItemRequest request) {
+    public ResponseEntity<ApiResponse<Void>> add(
+            @Valid @RequestBody CartItemRequest request,
+            HttpServletRequest httpRequest) {
+        Integer jwtUserId = (Integer) httpRequest.getAttribute("userId");
+        if (jwtUserId != null && !jwtUserId.equals(request.getUserId().intValue())) {
+            return ResponseEntity.ok(ApiResponse.error(403, "无权操作他人购物车"));
+        }
         cartService.addToCart(request.getUserId(), request.getProductId(), request.getQuantity());
         return ResponseEntity.ok(ApiResponse.success("添加成功"));
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<ApiResponse<CartResponse>> get(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<CartResponse>> get(
+            @PathVariable Long userId,
+            HttpServletRequest httpRequest) {
+        Integer jwtUserId = (Integer) httpRequest.getAttribute("userId");
+        if (jwtUserId != null && !jwtUserId.equals(userId.intValue())) {
+            return ResponseEntity.ok(ApiResponse.error(403, "无权查看他人购物车"));
+        }
         CartResponse cart = cartService.getCart(userId);
         return ResponseEntity.ok(ApiResponse.success(cart));
     }
 
     @DeleteMapping("/{userId}/{productId}")
     public ResponseEntity<ApiResponse<Void>> delete(
-            @PathVariable Long userId, @PathVariable Long productId) {
+            @PathVariable Long userId, @PathVariable Long productId,
+            HttpServletRequest httpRequest) {
+        Integer jwtUserId = (Integer) httpRequest.getAttribute("userId");
+        if (jwtUserId != null && !jwtUserId.equals(userId.intValue())) {
+            return ResponseEntity.ok(ApiResponse.error(403, "无权操作他人购物车"));
+        }
         cartService.removeFromCart(userId, productId);
         return ResponseEntity.ok(ApiResponse.success("移除成功"));
     }
 
     @DeleteMapping("/{userId}")
-    public ResponseEntity<ApiResponse<Void>> clear(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<Void>> clear(
+            @PathVariable Long userId,
+            HttpServletRequest httpRequest) {
+        Integer jwtUserId = (Integer) httpRequest.getAttribute("userId");
+        if (jwtUserId != null && !jwtUserId.equals(userId.intValue())) {
+            return ResponseEntity.ok(ApiResponse.error(403, "无权操作他人购物车"));
+        }
         cartService.clearCart(userId);
         return ResponseEntity.ok(ApiResponse.success("清空成功"));
     }
@@ -49,7 +73,12 @@ public class CartController {
     public ResponseEntity<ApiResponse<Void>> updateQuantity(
             @PathVariable Long userId,
             @PathVariable Long productId,
-            @RequestBody Map<String, Integer> body) {
+            @RequestBody Map<String, Integer> body,
+            HttpServletRequest httpRequest) {
+        Integer jwtUserId = (Integer) httpRequest.getAttribute("userId");
+        if (jwtUserId != null && !jwtUserId.equals(userId.intValue())) {
+            return ResponseEntity.ok(ApiResponse.error(403, "无权操作他人购物车"));
+        }
         Integer quantity = body.get("quantity");
         cartService.updateQuantity(userId, productId, quantity);
         return ResponseEntity.ok(ApiResponse.success("数量更新成功"));
@@ -59,7 +88,12 @@ public class CartController {
     @PostMapping("/{userId}/remove-selected")
     public ResponseEntity<ApiResponse<Void>> removeSelected(
             @PathVariable Long userId,
-            @RequestBody Map<String, List<Long>> body) {
+            @RequestBody Map<String, List<Long>> body,
+            HttpServletRequest httpRequest) {
+        Integer jwtUserId = (Integer) httpRequest.getAttribute("userId");
+        if (jwtUserId != null && !jwtUserId.equals(userId.intValue())) {
+            return ResponseEntity.ok(ApiResponse.error(403, "无权操作他人购物车"));
+        }
         List<Long> productIds = body.get("productIds");
         cartService.removeSelected(userId, productIds);
         return ResponseEntity.ok(ApiResponse.success("勾选商品移除成功"));

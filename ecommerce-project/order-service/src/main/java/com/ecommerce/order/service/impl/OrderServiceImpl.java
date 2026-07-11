@@ -61,7 +61,7 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(400, "购物车为空");
         }
 
-        return buildOrderFromCartItems(userId, items);
+        return buildOrderFromCartItems(userId, items, items.size());
     }
 
     @Override
@@ -98,7 +98,7 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(400, "勾选的商品不在购物车中");
         }
 
-        OrderResponse response = buildOrderFromCartItems(userId, selectedItems);
+        OrderResponse response = buildOrderFromCartItems(userId, selectedItems, allItems.size());
 
         // 3. 仅从购物车移除勾选的商品
         try {
@@ -111,7 +111,7 @@ public class OrderServiceImpl implements OrderService {
         return response;
     }
 
-    private OrderResponse buildOrderFromCartItems(Integer userId, List<Map<String, Object>> items) {
+    private OrderResponse buildOrderFromCartItems(Integer userId, List<Map<String, Object>> items, int allItemsCount) {
         // 生成购物车快照并检查是否已有相同订单
         String cartSnapshot = generateCartSnapshot(userId, items);
         var existingOrder = orderRepository.findByUserIdAndStatusAndCartSnapshot(userId, "UNPAID", cartSnapshot);
@@ -169,8 +169,8 @@ public class OrderServiceImpl implements OrderService {
         Order savedOrder = orderRepository.save(order);
         log.info("订单创建成功: orderId={}, userId={}, totalPrice={}", savedOrder.getId(), userId, totalPrice);
 
-        // 清空购物车（仅全量下单时）
-        if (items.size() == orderItems.size()) {
+        // 清空购物车（仅全量下单时：购物车商品数 == 本次下单商品数）
+        if (allItemsCount >= 0 && items.size() == allItemsCount) {
             try {
                 String clearCartUrl = cartServiceUrl + "/cart/" + userId;
                 restTemplate.delete(clearCartUrl);
@@ -186,6 +186,14 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<OrderResponse> getOrdersByUserId(Integer userId) {
+        return getOrdersByUserId(userId, userId);
+    }
+
+    public List<OrderResponse> getOrdersByUserId(Integer requestUserId, Integer userId) {
+        // 安全修复: 用户归属校验
+        if (requestUserId != null && !requestUserId.equals(userId)) {
+            throw new BusinessException(403, "无权查看他人订单");
+        }
         List<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
         return orders.stream().map(this::toResponse).toList();
     }
@@ -197,17 +205,26 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderResponse getOrderById(Long id) {
+    public OrderResponse getOrderById(Integer requestUserId, Long id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(404, "订单不存在"));
+        // 安全修复: 用户归属校验
+        if (requestUserId != null && !requestUserId.equals(order.getUserId())) {
+            throw new BusinessException(403, "无权查看他人订单");
+        }
         return toResponse(order);
     }
 
     @Override
     @Transactional
-    public OrderResponse payOrder(Long orderId, String payPassword, Integer addressId) {
+    public OrderResponse payOrder(Integer requestUserId, Long orderId, String payPassword, Integer addressId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BusinessException(404, "订单不存在"));
+
+        // 安全修复: 用户归属校验
+        if (requestUserId != null && !requestUserId.equals(order.getUserId())) {
+            throw new BusinessException(403, "无权操作他人订单");
+        }
 
         if (!"UNPAID".equals(order.getStatus())) {
             throw new BusinessException(400, "仅可支付UNPAID状态的订单，当前状态: " + order.getStatus());
@@ -245,13 +262,14 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-        // 扣减用户余额
+        // 扣减用户余额（失败时回滚已扣库存）
         String deductUrl = userServiceUrl + "/users/" + order.getUserId()
                 + "/deduct-balance?amount=" + order.getTotalPrice();
         try {
             restTemplate.put(deductUrl, null);
         } catch (Exception e) {
-            log.error("扣减余额失败: userId={}, amount={}, error={}", order.getUserId(), order.getTotalPrice(), e.getMessage());
+            log.error("扣减余额失败，回滚库存: userId={}, amount={}, error={}", order.getUserId(), order.getTotalPrice(), e.getMessage());
+            restoreOrderStock(order); // 安全修复: 余额扣减失败时回滚已扣库存
             throw new BusinessException(500, "支付失败: " + e.getMessage());
         }
 
@@ -268,9 +286,14 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public OrderResponse cancelOrder(Long orderId) {
+    public OrderResponse cancelOrder(Integer requestUserId, Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BusinessException(404, "订单不存在"));
+
+        // 安全修复: 用户归属校验
+        if (requestUserId != null && !requestUserId.equals(order.getUserId())) {
+            throw new BusinessException(403, "无权操作他人订单");
+        }
 
         if (!"UNPAID".equals(order.getStatus())) {
             throw new BusinessException(400, "仅可取消UNPAID状态的订单，当前状态: " + order.getStatus());
@@ -328,10 +351,25 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public OrderResponse updateOrder(Long orderId, String status) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BusinessException(404, "订单不存在"));
+        // 安全修复: 管理员修改订单也必须经过状态机校验
         if (status != null && !status.isBlank()) {
+            String current = order.getStatus();
+            boolean valid = switch (status) {
+                case "PAID" -> "UNPAID".equals(current);
+                case "SHIPPED" -> "PAID".equals(current);
+                case "IN_TRANSIT" -> "SHIPPED".equals(current);
+                case "DELIVERED" -> "IN_TRANSIT".equals(current);
+                case "COMPLETED" -> "DELIVERED".equals(current);
+                case "CANCELLED" -> "UNPAID".equals(current) || "PAID".equals(current);
+                default -> false;
+            };
+            if (!valid) {
+                throw new BusinessException(400, "不允许从 " + current + " 变更为 " + status);
+            }
             order.setStatus(status);
         }
         Order savedOrder = orderRepository.save(order);

@@ -64,7 +64,7 @@ public class UserServiceImpl implements UserService, CommandLineRunner {
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
         user.setBalance(defaultBalance);
-        user.setRole(role != null ? role : "USER");
+        user.setRole("USER"); // 安全修复: 注册时强制 USER 角色，禁止客户端指定角色
         user.setPhone(phone);
         user.setEmail(email);
         if (payPassword != null && !payPassword.isBlank()) {
@@ -183,8 +183,19 @@ public class UserServiceImpl implements UserService, CommandLineRunner {
         log.info("用户重置{}密码成功: userId={}", type, id);
     }
 
+    private static final List<String> ALLOWED_IMAGE_TYPES = List.of("image/jpeg", "image/png", "image/gif", "image/webp");
+
     @Override
     public String uploadAvatar(Integer id, byte[] fileData, String originalFilename) {
+        return uploadAvatar(id, fileData, originalFilename, null);
+    }
+
+    @Override
+    public String uploadAvatar(Integer id, byte[] fileData, String originalFilename, String contentType) {
+        // 安全修复: 文件类型校验
+        if (contentType != null && !ALLOWED_IMAGE_TYPES.contains(contentType.toLowerCase())) {
+            throw new BusinessException(400, "仅支持 JPG/PNG/GIF/WebP 图片格式");
+        }
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(404, "用户不存在"));
         try {
