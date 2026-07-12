@@ -304,6 +304,7 @@ public class UserServiceImpl implements UserService, CommandLineRunner {
     // ===== 管理员操作 =====
 
     @Override
+    @Transactional
     public void deleteUser(Integer id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(404, "用户不存在"));
