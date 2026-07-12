@@ -39,8 +39,12 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // 保留本地文件访问（兼容开发环境）
         registry.addResourceHandler("/uploads/avatars/**")
                 .addResourceLocations("file:" + avatarsDir + "/");
+        
+        // MinIO 文件通过 Nginx 代理访问，不需要在这里配置
+        // /files/** 路径由前端 Nginx 反向代理到 MinIO
     }
 
     @Bean

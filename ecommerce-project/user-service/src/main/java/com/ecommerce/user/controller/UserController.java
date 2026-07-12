@@ -10,6 +10,8 @@ import com.ecommerce.user.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -116,6 +118,20 @@ public class UserController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    // 从 MinIO 获取文件（头像等）
+    @GetMapping("/files/{filename}")
+    public ResponseEntity<byte[]> getFile(@PathVariable String filename) {
+        byte[] data = userService.getFile(filename);
+        String contentType = "image/jpeg";
+        if (filename.endsWith(".png")) contentType = "image/png";
+        else if (filename.endsWith(".gif")) contentType = "image/gif";
+        else if (filename.endsWith(".webp")) contentType = "image/webp";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, contentType)
+                .header(HttpHeaders.CACHE_CONTROL, "public, max-age=31536000")
+                .body(data);
     }
 
     // ===== 收货地址管理 =====

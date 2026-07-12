@@ -69,6 +69,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
+        // 文件访问端点（头像等）无需 Token，供浏览器直接加载图片
+        if (path.startsWith("/users/files/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         // 内部服务调用端点（跳过 JWT）
         if (isInternalPath(path)) {
             filterChain.doFilter(request, response);

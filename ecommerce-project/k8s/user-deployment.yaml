@@ -14,12 +14,20 @@ spec:
     spec:
       containers:
         - name: user-service
-          image: user-service:v0
+          image: user-service:v1
           ports:
             - containerPort: 8081
           env:
             - name: MYSQL_URL
               value: "jdbc:mysql://mysql-service:3306/ecommerce" # 👈 直接连接我们上一轮建好的 mysql-service
+            - name: CART_SERVICE_URL
+              value: "http://cart-service:80"
+            - name: PRODUCT_SERVICE_URL
+              value: "http://product-service:80"
+            - name: ORDER_SERVICE_URL
+              value: "http://order-service:80"
+            - name: MINIO_ENDPOINT
+              value: "http://minio:9000"  # K8s Service名称
 ---
 apiVersion: v1
 kind: Service

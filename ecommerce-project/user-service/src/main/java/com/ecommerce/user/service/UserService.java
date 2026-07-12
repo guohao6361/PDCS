@@ -32,4 +32,7 @@ public interface UserService {
     User updateUserByAdmin(Integer id, String username, String phone, String email, String role);
     User updateUserRole(Integer id, String role);
     void verifyPayPassword(Integer userId, String payPassword);
+
+    /** 从 MinIO 获取文件（用于头像等文件访问） */
+    byte[] getFile(String filename);
 }

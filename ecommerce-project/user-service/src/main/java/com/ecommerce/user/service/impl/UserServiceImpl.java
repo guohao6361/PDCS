@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -26,6 +27,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
+
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
+import io.minio.MakeBucketArgs;
+import io.minio.BucketExistsArgs;
+import io.minio.GetObjectArgs;
+import io.minio.StatObjectArgs;
 
 @Service
 public class UserServiceImpl implements UserService, CommandLineRunner {
@@ -61,6 +69,22 @@ public class UserServiceImpl implements UserService, CommandLineRunner {
 
     @Value("${app.upload.avatars-dir:uploads/avatars}")
     private String avatarsDir;
+
+    // MinIO 配置（用于文件存储）
+    @Value("${minio.endpoint:http://minio:9000}")
+    private String minioEndpoint;
+
+    @Value("${minio.access-key:admin}")
+    private String minioAccessKey;
+
+    @Value("${minio.secret-key:admin123456}")
+    private String minioSecretKey;
+
+    @Value("${minio.bucket-name:avatars}")
+    private String minioBucketName;
+
+    // MinIO 客户端单例
+    private MinioClient minioClient;
 
     @Override
     public RegisterResponse register(String username, String password, String role, String payPassword, String phone, String email) {
@@ -211,22 +235,60 @@ public class UserServiceImpl implements UserService, CommandLineRunner {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(404, "用户不存在"));
         try {
-            Path dir = Paths.get(avatarsDir);
-            Files.createDirectories(dir);
+            // 初始化 MinIO 客户端（懒加载）
+            if (minioClient == null) {
+                minioClient = MinioClient.builder()
+                        .endpoint(minioEndpoint)
+                        .credentials(minioAccessKey, minioSecretKey)
+                        .build();
+            }
+
             String ext = originalFilename != null && originalFilename.contains(".")
                     ? originalFilename.substring(originalFilename.lastIndexOf("."))
                     : ".jpg";
             String filename = "user_" + id + "_" + System.currentTimeMillis() + ext;
-            Path filePath = dir.resolve(filename);
-            Files.write(filePath, fileData, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            String avatarUrl = "/uploads/avatars/" + filename;
+
+            // 上传到 MinIO
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(minioBucketName)
+                            .object(filename)
+                            .stream(new ByteArrayInputStream(fileData), fileData.length, -1)
+                            .contentType(contentType != null ? contentType : "image/jpeg")
+                            .build()
+            );
+
+            // 返回前端可访问的 URL（通过 Nginx 代理）
+            String avatarUrl = "/files/" + filename;
             user.setAvatar(avatarUrl);
             userRepository.save(user);
             log.info("头像上传成功: userId={}, url={}", id, avatarUrl);
             return avatarUrl;
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("头像上传失败: userId={}, error={}", id, e.getMessage());
-            throw new BusinessException(500, "头像上传失败");
+            throw new BusinessException(500, "头像上传失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public byte[] getFile(String filename) {
+        try {
+            if (minioClient == null) {
+                minioClient = MinioClient.builder()
+                        .endpoint(minioEndpoint)
+                        .credentials(minioAccessKey, minioSecretKey)
+                        .build();
+            }
+            try (var stream = minioClient.getObject(
+                    GetObjectArgs.builder()
+                            .bucket(minioBucketName)
+                            .object(filename)
+                            .build())) {
+                return stream.readAllBytes();
+            }
+        } catch (Exception e) {
+            log.error("从 MinIO 获取文件失败: filename={}, error={}", filename, e.getMessage());
+            throw new BusinessException(404, "文件不存在: " + filename);
         }
     }
 
@@ -372,6 +434,24 @@ public class UserServiceImpl implements UserService, CommandLineRunner {
             admin.setRole("ADMIN");
             userRepository.save(admin);
             log.info("管理员账户初始化成功: username=admin, password=admin123");
+        }
+        // 初始化 MinIO bucket
+        try {
+            if (minioClient == null) {
+                minioClient = MinioClient.builder()
+                        .endpoint(minioEndpoint)
+                        .credentials(minioAccessKey, minioSecretKey)
+                        .build();
+            }
+            boolean exists = minioClient.bucketExists(BucketExistsArgs.builder().bucket(minioBucketName).build());
+            if (!exists) {
+                minioClient.makeBucket(MakeBucketArgs.builder().bucket(minioBucketName).build());
+                log.info("MinIO bucket '{}' 创建成功", minioBucketName);
+            } else {
+                log.info("MinIO bucket '{}' 已存在", minioBucketName);
+            }
+        } catch (Exception e) {
+            log.error("MinIO bucket 初始化失败: {}", e.getMessage());
         }
     }
 }
