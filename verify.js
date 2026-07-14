@@ -1,0 +1,15 @@
+db = db.getSiblingDB('ecommerce');
+print('总数: ' + db.products.countDocuments());
+var s = db.products.stats();
+print('数据大小: ' + (s.dataSize/1024/1024).toFixed(2) + ' MB');
+print('存储大小: ' + (s.storageSize/1024/1024).toFixed(2) + ' MB');
+var cats = db.products.aggregate([{$group:{_id:'$category',count:{$sum:1}}},{$sort:{count:-1}}]).toArray();
+print('分类统计:');
+cats.forEach(function(c){print('  ' + c._id + ': ' + c.count);});
+var p = db.products.findOne();
+print('示例商品:');
+print('  名称: ' + p.name);
+print('  价格: ' + p.price);
+print('  图片: ' + p.imageUrl);
+print('  分类: ' + p.category);
+print('  描述: ' + p.description.substring(0, 80) + '...');
