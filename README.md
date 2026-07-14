@@ -188,11 +188,16 @@ kubectl apply -f k8s/cart-deployment.yaml
 # 部署前端
 kubectl apply -f k8s/web-deployment.yaml
 
-# 暴露服务
+# 暴露服务（已配置 systemd 自动转发）
 kubectl port-forward service/web-service 30080:80 --address 0.0.0.0
 ```
 
-访问 http://localhost:30080 即可使用。
+**访问地址：**
+
+- **公网访问**（推荐）：http://8.163.25.118:30080
+- **服务器本地**：http://localhost:30080
+
+> 注意：`localhost` 只能在服务器本机上访问，外网用户请使用公网 IP 地址访问。
 
 ## 运维脚本
 
