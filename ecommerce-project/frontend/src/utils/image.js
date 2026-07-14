@@ -6,7 +6,6 @@ export function getImageUrl(path) {
   if (path.startsWith('http')) return path;
   if (path.startsWith('/uploads/avatars')) return BACKEND_USER + path;
   if (path.startsWith('/uploads/products')) return BACKEND_PRODUCT + path;
-  // MinIO 文件通过 user-service 的 /users/files/ 端点获取（相对路径，dev/prod 通用）
-  if (path.startsWith('/files/')) return '/users' + path;
+  // MinIO 文件通过 Nginx 的 /files/ 路径访问（dev/prod 通用）
   return path;
 }

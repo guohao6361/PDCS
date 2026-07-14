@@ -18,6 +18,7 @@ public class Product {
     private Integer merchantId;
     private String description;
     private String imageUrl;
+    private String imageData;  // base64 编码的商品图片
     
     // 👈 动态字段属性（MongoDB 核心优势）：允许不同商品存放完全不同的任意属性键值对！
     private Map<String, Object> attributes;
@@ -46,6 +47,9 @@ public class Product {
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public String getImageData() { return imageData; }
+    public void setImageData(String imageData) { this.imageData = imageData; }
 
     public Map<String, Object> getAttributes() { return attributes; }
     public void setAttributes(Map<String, Object> attributes) { this.attributes = attributes; }

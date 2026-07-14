@@ -20,12 +20,15 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
+import io.minio.MakeBucketArgs;
+import io.minio.BucketExistsArgs;
+
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,8 +50,21 @@ public class ProductServiceImpl implements CommandLineRunner {
     @Value("${app.product.default-size:10}")
     private int defaultPageSize;
 
-    @Value("${app.upload.products-dir:uploads/products}")
-    private String productsDir;
+    // MinIO 配置
+    @Value("${minio.endpoint:http://minio:9000}")
+    private String minioEndpoint;
+
+    @Value("${minio.access-key:admin}")
+    private String minioAccessKey;
+
+    @Value("${minio.secret-key:admin123456}")
+    private String minioSecretKey;
+
+    @Value("${minio.bucket-name:product-images}")
+    private String minioBucketName;
+
+    // MinIO 客户端单例
+    private MinioClient minioClient;
 
     // 获取商品列表（分页）
     public PageResponse<Product> getAllProducts(int page, int size) {
@@ -118,20 +134,36 @@ public class ProductServiceImpl implements CommandLineRunner {
             throw new BusinessException(400, "仅支持 JPG/PNG/GIF/WebP 图片格式");
         }
         try {
-            Path dir = Paths.get(productsDir);
-            Files.createDirectories(dir);
+            // 初始化 MinIO 客户端（懒加载）
+            if (minioClient == null) {
+                minioClient = MinioClient.builder()
+                        .endpoint(minioEndpoint)
+                        .credentials(minioAccessKey, minioSecretKey)
+                        .build();
+            }
+
             String ext = originalFilename != null && originalFilename.contains(".")
                     ? originalFilename.substring(originalFilename.lastIndexOf("."))
                     : ".jpg";
             String filename = "product_" + System.currentTimeMillis() + ext;
-            Path filePath = dir.resolve(filename);
-            Files.write(filePath, fileData, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            String imageUrl = "/uploads/products/" + filename;
+
+            // 上传到 MinIO
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(minioBucketName)
+                            .object(filename)
+                            .stream(new ByteArrayInputStream(fileData), fileData.length, -1)
+                            .contentType(contentType != null ? contentType : "image/jpeg")
+                            .build()
+            );
+
+            // 返回前端可访问的 URL（通过 Nginx 代理）
+            String imageUrl = "/files/" + filename;
             log.info("商品图片上传成功: url={}", imageUrl);
             return imageUrl;
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("商品图片上传失败: {}", e.getMessage());
-            throw new BusinessException(500, "图片上传失败");
+            throw new BusinessException(500, "图片上传失败: " + e.getMessage());
         }
     }
 
@@ -187,6 +219,25 @@ public class ProductServiceImpl implements CommandLineRunner {
     // ==========================================================
     @Override
     public void run(String... args) throws Exception {
+        // 初始化 MinIO bucket
+        try {
+            if (minioClient == null) {
+                minioClient = MinioClient.builder()
+                        .endpoint(minioEndpoint)
+                        .credentials(minioAccessKey, minioSecretKey)
+                        .build();
+            }
+            boolean exists = minioClient.bucketExists(BucketExistsArgs.builder().bucket(minioBucketName).build());
+            if (!exists) {
+                minioClient.makeBucket(MakeBucketArgs.builder().bucket(minioBucketName).build());
+                log.info("MinIO bucket '{}' 创建成功", minioBucketName);
+            } else {
+                log.info("MinIO bucket '{}' 已存在", minioBucketName);
+            }
+        } catch (Exception e) {
+            log.error("MinIO bucket 初始化失败: {}", e.getMessage());
+        }
+
         if (productRepository.count() == 0) {
             // 1. 初始化华为 Mate 60 (带手机特有动态属性) [1.1.2]
             Product p1 = new Product();

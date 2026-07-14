@@ -247,6 +247,29 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
+        // 验证商品有效性（防止商品下架后仍能支付）
+        for (OrderItem item : order.getItems()) {
+            String productUrl = productServiceUrl + "/products/" + item.getProductId();
+            try {
+                ApiResponse<?> productResp = restTemplate.getForObject(productUrl, ApiResponse.class);
+                if (productResp == null || productResp.getData() == null) {
+                    throw new BusinessException(400, "商品不存在或已下架: " + item.getProductName());
+                }
+                Map<String, Object> product = (Map<String, Object>) productResp.getData();
+                // 检查商品库存是否充足
+                Integer stock = Integer.parseInt(product.get("stock").toString());
+                if (stock < item.getQuantity()) {
+                    throw new BusinessException(400, "商品库存不足: " + item.getProductName() + "，当前库存: " + stock);
+                }
+            } catch (Exception e) {
+                if (e instanceof BusinessException) {
+                    throw e;
+                }
+                log.error("验证商品有效性失败: productId={}, error={}", item.getProductId(), e.getMessage());
+                throw new BusinessException(500, "商品验证失败，请稍后重试");
+            }
+        }
+
         // 扣减库存
         for (OrderItem item : order.getItems()) {
             String deductUrl = productServiceUrl + "/products/" + item.getProductId()
@@ -330,6 +353,23 @@ public class OrderServiceImpl implements OrderService {
         if ("CANCELLED".equals(newStatus) && "PAID".equals(current)) {
             // 已支付的取消需要退款（简化处理：仅恢复库存）
             restoreOrderStock(order);
+        }
+
+        // 订单完成时，将订单金额增加到商家余额
+        if ("COMPLETED".equals(newStatus) && "DELIVERED".equals(current)) {
+            if (order.getMerchantId() != null) {
+                String addBalanceUrl = userServiceUrl + "/users/" + order.getMerchantId()
+                        + "/add-balance?amount=" + order.getTotalPrice();
+                try {
+                    restTemplate.put(addBalanceUrl, null);
+                    log.info("商家余额增加成功: merchantId={}, amount={}", order.getMerchantId(), order.getTotalPrice());
+                } catch (Exception e) {
+                    log.error("增加商家余额失败: merchantId={}, amount={}, error={}", order.getMerchantId(), order.getTotalPrice(), e.getMessage());
+                    // 不抛出异常，避免影响订单状态更新
+                }
+            } else {
+                log.warn("订单无商家归属，跳过余额增加: orderId={}", orderId);
+            }
         }
 
         order.setStatus(newStatus);

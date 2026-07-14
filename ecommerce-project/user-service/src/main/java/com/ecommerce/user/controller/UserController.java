@@ -49,6 +49,15 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("余额扣减成功"));
     }
 
+    @PutMapping("/{userId}/add-balance")
+    @InternalApi
+    public ResponseEntity<ApiResponse<Void>> addBalance(
+            @PathVariable Integer userId,
+            @RequestParam BigDecimal amount) {
+        userService.addBalance(userId, amount);
+        return ResponseEntity.ok(ApiResponse.success("余额增加成功"));
+    }
+
     // 管理员查看所有用户
     @GetMapping("/admin/users")
     @AdminRequired

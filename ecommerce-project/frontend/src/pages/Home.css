@@ -115,3 +115,58 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* 分页样式 */
+.pagination {
+  margin-top: 40px;
+  padding: 20px 0;
+  border-top: 1px solid #e8e8e8;
+}
+
+.pagination-info {
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  background: white;
+  color: #1a1a2e;
+  border: 2px solid #e8e8e8;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 40px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #1a1a2e;
+}
+
+.pagination-btn.active {
+  background: #1a1a2e;
+  color: white;
+  border-color: #1a1a2e;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-btn:first-child,
+.pagination-btn:last-child {
+  padding: 8px 20px;
+}

@@ -112,28 +112,44 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success(saved));
     }
 
-    // 商家修改商品
+    // 修改商品
     @PutMapping("/products/{id}")
     public ResponseEntity<ApiResponse<Product>> updateProduct(
             @PathVariable Integer id,
             @RequestBody Product product,
             HttpServletRequest httpRequest) {
         String role = (String) httpRequest.getAttribute("userRole");
+        Integer userId = (Integer) httpRequest.getAttribute("userId");
         if (!"MERCHANT".equals(role) && !"ADMIN".equals(role)) {
             return ResponseEntity.ok(ApiResponse.error(403, "需要商家或管理员权限"));
+        }
+        // 商家只能修改自己的商品，管理员可以修改所有商品
+        if ("MERCHANT".equals(role)) {
+            Product existing = productService.getProduct(id);
+            if (existing.getMerchantId() == null || !existing.getMerchantId().equals(userId)) {
+                return ResponseEntity.ok(ApiResponse.error(403, "无权修改此商品，只能管理自己发布的商品"));
+            }
         }
         Product updated = productService.updateProduct(id, product);
         return ResponseEntity.ok(ApiResponse.success(updated));
     }
 
-    // 商家删除商品
+    // 删除商品
     @DeleteMapping("/products/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteProduct(
             @PathVariable Integer id,
             HttpServletRequest httpRequest) {
         String role = (String) httpRequest.getAttribute("userRole");
+        Integer userId = (Integer) httpRequest.getAttribute("userId");
         if (!"MERCHANT".equals(role) && !"ADMIN".equals(role)) {
             return ResponseEntity.ok(ApiResponse.error(403, "需要商家或管理员权限"));
+        }
+        // 商家只能删除自己的商品，管理员可以删除所有商品
+        if ("MERCHANT".equals(role)) {
+            Product existing = productService.getProduct(id);
+            if (existing.getMerchantId() == null || !existing.getMerchantId().equals(userId)) {
+                return ResponseEntity.ok(ApiResponse.error(403, "无权删除此商品，只能管理自己发布的商品"));
+            }
         }
         productService.deleteProduct(id);
         return ResponseEntity.ok(ApiResponse.success("商品删除成功"));

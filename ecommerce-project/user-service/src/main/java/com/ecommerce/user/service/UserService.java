@@ -11,6 +11,7 @@ public interface UserService {
     RegisterResponse register(String username, String password, String role, String payPassword, String phone, String email);
     LoginResponse login(String username, String password);
     void deductBalance(Integer userId, BigDecimal amount);
+    void addBalance(Integer userId, BigDecimal amount);
     List<User> getAllUsers();
 
     User getUserById(Integer id);

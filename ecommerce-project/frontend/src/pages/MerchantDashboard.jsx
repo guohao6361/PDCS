@@ -157,7 +157,7 @@ export default function MerchantDashboard() {
                   上传商品图片
                   <input type="file" accept="image/*" onChange={handleImageUpload} hidden />
                 </label>
-                {productForm.imageUrl && <img src={getImageUrl(productForm.imageUrl)} alt="预览" className="preview-img" />}
+                {(productForm.imageData || productForm.imageUrl) && <img src={productForm.imageData || getImageUrl(productForm.imageUrl)} alt="预览" className="preview-img" />}
               </div>
               <div className="form-actions">
                 <button onClick={handleSaveProduct}>{editingProduct ? '保存修改' : '发布'}</button>
@@ -168,7 +168,7 @@ export default function MerchantDashboard() {
           <div className="product-list-dashboard">
             {products.map(p => (
               <div key={p.id} className="product-row">
-                {p.imageUrl && <img src={getImageUrl(p.imageUrl)} alt="" className="product-thumb" />}
+                {(p.imageData || p.imageUrl) && <img src={p.imageData || getImageUrl(p.imageUrl)} alt="" className="product-thumb" />}
                 <div className="product-row-info">
                   <strong>{p.name}</strong>
                   <span>¥{p.price} | 库存: {p.stock}</span>

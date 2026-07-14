@@ -21,11 +21,16 @@ export default function ProductDetail() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [p, r] = await Promise.all([getProduct(id), getReviews(id)]);
+        const p = await getProduct(id);
         setProduct(p);
+      } catch (err) {
+        console.error('加载商品失败:', err);
+      }
+      try {
+        const r = await getReviews(id);
         setReviews(r);
       } catch (err) {
-        console.error(err);
+        console.error('加载评价失败:', err);
       }
       setLoading(false);
     };
@@ -69,7 +74,9 @@ export default function ProductDetail() {
     <div className="detail-page">
       <div className="detail-header">
         <div className="detail-image">
-          {product.imageUrl ? (
+          {product.imageData ? (
+            <img src={product.imageData} alt={product.name} className="detail-product-image" />
+          ) : product.imageUrl ? (
             <img src={getImageUrl(product.imageUrl)} alt={product.name} className="detail-product-image" />
           ) : (
             <div className="detail-image-placeholder">暂无图片</div>

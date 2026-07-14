@@ -49,6 +49,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     // 内部服务调用端点（跳过 JWT，仅限微服务网络内部访问）
     private boolean isInternalPath(String path) {
         return path.matches("/users/\\d+/deduct-balance")
+                || path.matches("/users/\\d+/add-balance")
                 || path.matches("/users/\\d+/verify-pay-password");
     }
 

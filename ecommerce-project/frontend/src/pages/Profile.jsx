@@ -100,21 +100,32 @@ export default function Profile() {
   };
 
   // 地址管理
+  const loadAddresses = async () => {
+    try {
+      const a = await getAddresses(user.id);
+      setAddresses(a || []);
+    } catch (err) {
+      console.error('加载地址失败:', err);
+    }
+  };
+
   const handleSaveAddress = async () => {
     if (!addrForm.receiverName || !addrForm.phone || !addrForm.detailAddress) {
       return toast('请填写完整地址信息', 'error');
     }
     try {
       if (editingAddrId) {
-        const updated = await updateAddress(user.id, editingAddrId, addrForm);
-        setAddresses(addresses.map(a => a.id === editingAddrId ? updated : a));
-        setEditingAddrId(null);
+        await updateAddress(user.id, editingAddrId, addrForm);
+        toast('地址修改成功', 'success');
       } else {
         if (addresses.length >= 10) return toast('最多保存10个地址', 'error');
-        const created = await createAddress(user.id, addrForm);
-        setAddresses([...addresses, created]);
+        await createAddress(user.id, addrForm);
+        toast('地址添加成功', 'success');
       }
+      setEditingAddrId(null);
       setAddrForm({ receiverName: '', phone: '', province: '', city: '', district: '', detailAddress: '', isDefault: false });
+      // 重新加载地址列表，确保默认地址状态正确
+      await loadAddresses();
     } catch (err) {
       toast(err.message, 'error');
     }
@@ -129,7 +140,9 @@ export default function Profile() {
     if (!await confirm('确定删除此地址？')) return;
     try {
       await deleteAddress(user.id, addrId);
-      setAddresses(addresses.filter(a => a.id !== addrId));
+      toast('地址删除成功', 'success');
+      // 重新加载地址列表
+      await loadAddresses();
     } catch (err) {
       toast(err.message, 'error');
     }
@@ -137,8 +150,10 @@ export default function Profile() {
 
   const handleSetDefault = async (addrId) => {
     try {
-      const updated = await setDefaultAddress(user.id, addrId);
-      setAddresses(addresses.map(a => ({ ...a, isDefault: a.id === addrId ? true : false })));
+      await setDefaultAddress(user.id, addrId);
+      toast('默认地址设置成功', 'success');
+      // 重新加载地址列表，确保默认地址状态正确
+      await loadAddresses();
     } catch (err) {
       toast(err.message, 'error');
     }

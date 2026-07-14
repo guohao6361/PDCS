@@ -139,6 +139,15 @@ public class UserServiceImpl implements UserService, CommandLineRunner {
     }
 
     @Override
+    public void addBalance(Integer userId, BigDecimal amount) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(404, "用户不存在"));
+        user.setBalance(user.getBalance().add(amount));
+        userRepository.save(user);
+        log.info("余额增加成功: userId={}, amount={}, newBalance={}", userId, amount, user.getBalance());
+    }
+
+    @Override
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }

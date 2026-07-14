@@ -11,5 +11,10 @@ app:
     default-size: ${PRODUCT_DEFAULT_SIZE:10}
   jwt:
     secret: ${JWT_SECRET:myDefaultJwtSecretKeyForDevelopmentOnly123456}
-  upload:
-    products-dir: ${PRODUCTS_DIR:uploads/products}
+
+# MinIO 配置
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://minio:9000}
+  access-key: ${MINIO_ACCESS_KEY:admin}
+  secret-key: ${MINIO_SECRET_KEY:admin123456}
+  bucket-name: ${MINIO_BUCKET_NAME:avatars}

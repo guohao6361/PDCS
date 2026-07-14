@@ -8,6 +8,21 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [initialized, setInitialized] = useState(false);
 
+  // 刷新用户信息（从服务器获取最新数据）
+  const refreshUser = useCallback(async () => {
+    const currentUser = user || JSON.parse(localStorage.getItem('user') || 'null');
+    if (!currentUser?.id) return;
+    try {
+      const data = await getUser(currentUser.id);
+      const updated = { ...currentUser, ...data, id: data.id };
+      setUser(updated);
+      localStorage.setItem('user', JSON.stringify(updated));
+      return updated;
+    } catch (err) {
+      console.error('刷新用户信息失败', err);
+    }
+  }, [user]);
+
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
@@ -17,6 +32,13 @@ export function AuthProvider({ children }) {
     }
     setInitialized(true);
   }, []);
+
+  // 初始化后自动刷新用户信息（获取最新余额等）
+  useEffect(() => {
+    if (initialized && user?.id) {
+      refreshUser();
+    }
+  }, [initialized]);
 
   // 监听 401 事件，同步清除 React 状态
   useEffect(() => {
@@ -46,18 +68,6 @@ export function AuthProvider({ children }) {
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
   };
-
-  const refreshUser = useCallback(async () => {
-    if (!user?.id) return;
-    try {
-      const data = await getUser(user.id);
-      const updated = { ...user, ...data, id: data.id };
-      updateUser(updated);
-      return updated;
-    } catch (err) {
-      console.error('刷新用户信息失败', err);
-    }
-  }, [user]);
 
   return (
     <AuthContext.Provider value={{ user, token, initialized, login, logout, updateUser, refreshUser }}>

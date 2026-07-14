@@ -28,9 +28,11 @@ export default function ProductCard({ product, onRefresh }) {
   };
 
   return (
-    <div className="product-card" onClick={() => navigate(`/products/${product.id}`)}>
+    <div className="product-card" onClick={() => navigate(`/product/${product.id}`)}>
       <div className="product-image-wrapper">
-        {product.imageUrl ? (
+        {product.imageData ? (
+          <img src={product.imageData} alt={product.name} className="product-image" />
+        ) : product.imageUrl ? (
           <img src={getImageUrl(product.imageUrl)} alt={product.name} className="product-image" />
         ) : (
           <div className="product-image-placeholder">暂无图片</div>
